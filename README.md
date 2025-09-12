@@ -20,9 +20,9 @@ Map Project is a web application that explores how maps and geolocation can be u
 ## Team
 This project is developed as part of the **CUNY Tech Prep Fellowship (2025–2026 Cohort)** by a collaborative student team across multiple CUNY campuses.  
 
-## 📑 Notes (For CISC 4900 Requirement Only)
+## 📑(For CISC 4900 Requirement Only) (CTP team ignore this)
 This section is for my **CISC 4900 Independent Project class**.  
 It contains my timelog and is not part of the project deliverables for the team.  
 
-👉 [View My Timelog](https://link-to-your-timelog.com)
+👉 [View My Timelog]([https://link-to-your-timelog.com](https://docs.google.com/spreadsheets/d/1t9WjDZbcMgz16ysqB7L7l7HQdXJRdsoC8jRkrP5u7Qs/edit?usp=sharing))
 
