@@ -24,5 +24,5 @@ This project is developed as part of the **CUNY Tech Prep Fellowship (2025–202
 This section is for my **CISC 4900 Independent Project class**.  
 It contains my timelog and is not part of the project deliverables for the team.  
 
-👉 [View My Timelog]([https://link-to-your-timelog.com](https://docs.google.com/spreadsheets/d/1t9WjDZbcMgz16ysqB7L7l7HQdXJRdsoC8jRkrP5u7Qs/edit?usp=sharing))
+👉 [View My Timelog](https://docs.google.com/spreadsheets/d/1t9WjDZbcMgz16ysqB7L7l7HQdXJRdsoC8jRkrP5u7Qs/edit?usp=sharing)
 
