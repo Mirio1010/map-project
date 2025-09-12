@@ -20,8 +20,9 @@ Map Project is a web application that explores how maps and geolocation can be u
 ## Team
 This project is developed as part of the **CUNY Tech Prep Fellowship (2025–2026 Cohort)** by a collaborative student team across multiple CUNY campuses.  
 
-## Getting Started
-1. Clone the repository:  
-   ```bash
-   git clone https://github.com/<your-username>/map-project.git
+## 📑 Notes (For CISC 4900 Requirement Only)
+This section is for my **CISC 4900 Independent Project class**.  
+It contains my timelog and is not part of the project deliverables for the team.  
+
+👉 [View My Timelog](https://link-to-your-timelog.com)
 
