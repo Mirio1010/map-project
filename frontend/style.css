@@ -1,0 +1,139 @@
+:root {
+  --bg: #5f5d5d;
+  --panel: #151821;
+  --text: #000000;
+  --muted: #ffffff;
+  --brand: #5aa9ff;
+  --border: #232838;
+}
+
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+}
+
+/* Header container */
+.site-header {
+  position: sticky; /* stays on top when scrolling */
+  top: 0;
+  z-index: 100;
+  background: #0b0d12cc; /* translucent for a modern look */
+  backdrop-filter: blur(8px); /* glass effect (where supported) */
+  border-bottom: 1px solid var(--border);
+}
+
+/* Header layout */
+.site-header nav {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.tabs {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Tab buttons */
+.tabs [role="tab"] {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid transparent;
+  padding: 0.5rem 0.75rem;
+  border-radius: 999px; /* pill shape */
+  cursor: pointer;
+}
+
+.tabs [role="tab"]:hover {
+  filter: brightness(1.1);
+}
+
+.tabs [role="tab"]:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+/* Active tab (via aria-selected) */
+.tabs [role="tab"][aria-selected="true"] {
+  color: var(--text);
+  border-color: var(--border);
+  background: #767d93;
+}
+
+/* Handle narrow screens: tabs should wrap instead of overflowing */
+@media (max-width: 520px) {
+  .site-header nav {
+    flex-wrap: wrap;
+  }
+  .tabs {
+    flex-wrap: wrap;
+  }
+}
+
+/* Page as two rows: sticky header + fill-the-rest main */
+html,
+body {
+  height: 100%;
+}
+body {
+  display: grid;
+  grid-template-rows: auto 1fr; /* header height + main flex */
+}
+
+/* Full-height two-column split under the header */
+.layout-full {
+  height: 100%; /* occupies the full remaining viewport */
+  display: grid;
+  grid-template-columns: 440px minmax(0, 1fr); /* left fixed-ish, right expands */
+  gap: 0; /* no gutters like MapQuest */
+}
+
+/* LEFT: content column */
+.left-pane {
+  overflow: auto; /* left column scrolls independently if long */
+  padding: 16px; /* inner breathing room */
+}
+
+/* RIGHT: map column (fills entirely) */
+.right-pane {
+  position: relative; /* positioning context for map canvas */
+  overflow: hidden;
+}
+
+/* Map canvas fills the right pane */
+.map-canvas {
+  position: absolute;
+  inset: 0; /* top:0 right:0 bottom:0 left:0 */
+}
+
+/* Responsive: when narrow, stack and keep map big */
+@media (max-width: 900px) {
+  .layout-full {
+    grid-template-columns: 1fr; /* stack */
+  }
+  .right-pane {
+    min-height: 50vh;
+  } /* give the map presence when stacked */
+}
+
+.brand {
+  color: white;
+  text-decoration: none;
+  font-weight: bolder;
+}
