@@ -1,5 +1,5 @@
 # View our page here 
-[Map-Website](https://github.com/Mirio1010/map-project/tree/main/frontend/index.html)
+[Map-Website](https://Mirio1010.github.io/map-project/)
 
 # 🗺️ Map Project
 
