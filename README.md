@@ -31,3 +31,5 @@ It contains my timelog and is not part of the project deliverables for the team.
 
 👉 [View My Timelog](https://docs.google.com/spreadsheets/d/1t9WjDZbcMgz16ysqB7L7l7HQdXJRdsoC8jRkrP5u7Qs/edit?usp=sharing)
 
+👉 [View Project Slides](https://docs.google.com/presentation/d/1AUJZLIb-Grsj2MFVBZWYGsEntbMhPm0vsZgXCs-9lrI/edit?usp=sharing)
+
