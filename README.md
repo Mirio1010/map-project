@@ -1,14 +1,16 @@
 # 🗺️ Map Project
 
 ## Overview
-Map Project is a web application that explores how maps and geolocation can be used to solve everyday problems. The goal is to provide users with an interactive map that displays relevant nearby resources, starting with simple examples and expanding to more useful features as the project develops.  
+This site consists of an interactive map, where users can drop pins anywhere. Every pin can have a tag (restaurant, event, nightlife, etc…). The user can only see pins from other users that they are connected to. For example, if your friend pins a pop-up store, the pin will appear on my map along with a description like “Cool clothing store, only open for 3 more days!!”.
 
-## Features (Planned)
-- 📍 **Interactive Map** – Display points of interest on a map  
-- 🧭 **Geolocation** – Detect and center the map on the user’s current location  
-- 🔍 **Resource Discovery** – Show nearby amenities or resources (e.g., restrooms, study spaces, water fountains, food)  
-- ⚡ **Filters & Details** – Provide additional context such as accessibility, hours, or distance  
-- 🌱 **Extensibility** – Built to expand into different resource types depending on user needs  
+### MVP’s:
+- Map Background  
+- Drop a pin  
+### Features:
+- User can see pins from other users  
+- Each user has a distinct pin for recognition  
+- User can assign a tag on a pin for filtering purposes  
+- User can add description, date and time on each pin  
 
 ## Tech Stack
 - **Frontend:** React, Tailwind CSS, JavaScript/TypeScript  
