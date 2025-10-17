@@ -19,8 +19,8 @@ L.tileLayer(
       '<a href="https://www.maptiler.com/copyright/" target="_blank">&copy; MapTiler</a> <a href="https://www.openstreetmap.org/copyright" target="_blank">&copy; OpenStreetMap contributors</a>',
   }
 ).addTo(map);
-// This is the logic of adding custom pins (Need implementation of marking a pin in order to join them together, not doing anything right now)
-  
+
+// This is the logic of adding custom pins (Need implementation of marking a pin in order to join them together, not doing anything right now)  
 var LeafIcon = L.Icon.extend({
     options: { 
       iconSize: [40, 50],
@@ -50,15 +50,17 @@ btnLocate.addEventListener("click", () => {
   locStatus.textContent = "Requesting location…";
   map.locate({ setView: true, maxZoom: 16 });
   // Leaflet’s built-in geolocation helper
-  // map.locate({
-  //   setView: true, // recenters the map
-  //   maxZoom: 16, // reasonable city-level zoom
-  //   enableHighAccuracy: true, // use GPS if available
-  //   timeout: 10000, // give up after 10s
-  //   watch: false, // one-shot; set true if you want continuous tracking
-  // });
+  map.locate({
+    setView: true, // recenters the map
+    maxZoom: 16, // reasonable city-level zoom
+    enableHighAccuracy: true, // use GPS if available
+    timeout: 10000, // give up after 10s
+    watch: false, // one-shot; set true if you want continuous tracking
+  });
 });
 
+
+// Function if location is found 
 map.on("locationfound", (e) => {
   locStatus.textContent = `Location found (±${Math.round(e.accuracy)} m).`;
   // Optional visuals:
@@ -67,12 +69,14 @@ map.on("locationfound", (e) => {
   L.circle(e.latlng, { radius }).addTo(map);
 });
 
+// Function if location is not found
 map.on("locationerror", (e) => {
   locStatus.textContent = `Location error: ${e.message}`;
   console.warn("Location access denied or unavailable:", e.message);
 });
 
 
+// ----------------------------------------------------------------------------------------------------
 map.locate({
   setView: true, 
   maxZoom: 14, 
@@ -80,24 +84,23 @@ map.locate({
 });
 
 
-// map.on("locationfound", (e) => {
-//   const radius = e.accuracy;
-//   L.marker(e.latlng).addTo(map).bindPopup("You are here").openPopup();
-//   L.circle(e.latlng, { radius }).addTo(map);
-// });
+map.on("locationfound", (e) => {
+  const radius = e.accuracy;
+  L.marker(e.latlng).addTo(map).bindPopup("You are here").openPopup();
+  L.circle(e.latlng, { radius }).addTo(map);
+});
 
 
-// map.on("locationerror", (e) => {
-//   console.warn("Location access denied or unavailable:", e.message);
-//   map.setView([40.7128, -74.006], 12);
-// });
+map.on("locationerror", (e) => {
+  console.warn("Location access denied or unavailable:", e.message);
+  map.setView([40.7128, -74.006], 12);
+});
+
+L.marker([51.5, -0.09], {icon: Pin}).addTo(map).bindPopup("I am a pin.");
 
 
 
-
-// L.marker([51.5, -0.09], {icon: Pin}).addTo(map).bindPopup("I am a pin.");
-
-//task 4 
+//task 4 ----------------------------------------------------------------------------------------
 map.on('click', clickOnMap);
 
 // when user click on map this must run
