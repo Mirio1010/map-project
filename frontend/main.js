@@ -20,9 +20,19 @@ L.tileLayer(
 ).addTo(map);
 
 
+// Overriding leaflets default pin to a custom one. (All images should be stored in separate folder, current folder structure is temporary)
+L.Marker.prototype.options.icon = L.icon({
+  iconUrl: 'Pin.png',       // image that will be used
+  iconSize: [40, 50],       
+  iconAnchor: [20, 50],
+  popupAnchor: [-3, -76],
+  shadowSize: [50, 64]
+})
 
 const btnLocate = document.getElementById("btn-locate");
 const locStatus = document.getElementById("loc-status");
+
+
 
 // AI written code below-------------------------------------------------------------------
 
@@ -69,3 +79,20 @@ map.on("locationerror", (e) => {
   console.warn("Location access denied or unavailable:", e.message);
   map.setView([40.7128, -74.006], 12);
 });
+
+// This is the logic of adding custom pins (Need implementation of marking a pin in order to join them together, not doing anything right now)
+  
+var LeafIcon = L.Icon.extend({
+    options: {
+        // shadowUrl: 'Pin.jpg',    // Choose shadow for aesthetic 
+        iconSize:     [38, 95],
+        shadowSize:   [50, 64],
+        iconAnchor:   [22, 94],
+        shadowAnchor: [4, 62],
+        popupAnchor:  [-3, -76]
+    }
+});
+
+var redPin = new LeafIcon({iconUrl: 'Pin.png'});
+
+L.marker([51.5, -0.09], {icon: Pin}).addTo(map).bindPopup("I am a pin.");
