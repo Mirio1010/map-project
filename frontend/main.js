@@ -30,14 +30,14 @@ var LeafIcon = L.Icon.extend({
 });
 var redPin = new LeafIcon({iconUrl: 'Pin.png'});
 
-// // Overriding leaflets default pin to a custom one. (All images should be stored in separate folder, current folder structure is temporary)
-// L.Marker.prototype.options.icon = L.icon({
-//   iconUrl: 'Pin.png',       // image that will be used
-//   iconSize: [40, 50],       
-//   iconAnchor: [20, 50],
-//   popupAnchor: [-3, -76],
-//   shadowSize: [50, 64]
-// })
+// Overriding leaflets default pin to a custom one. (All images should be stored in separate folder, current folder structure is temporary)
+L.Marker.prototype.options.icon = L.icon({
+  iconUrl: 'Pin.png',       // image that will be used
+  iconSize: [40, 50],       
+  iconAnchor: [20, 50],
+  popupAnchor: [-3, -76],
+  shadowSize: [50, 64]
+})
 
 const btnLocate = document.getElementById("btn-locate");
 const locStatus = document.getElementById("loc-status");
