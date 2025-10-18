@@ -11,7 +11,7 @@ tabs.forEach((btn) => {
 
 //map initialization
 
-var map = L.map("map").setView([40.7128, -74.006], 12);
+var map = L.map("map").setView([0,0],1);
 L.tileLayer(
   "https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=lxScjRx8ItyJXrWd3tbU",
   {
@@ -19,16 +19,6 @@ L.tileLayer(
       '<a href="https://www.maptiler.com/copyright/" target="_blank">&copy; MapTiler</a> <a href="https://www.openstreetmap.org/copyright" target="_blank">&copy; OpenStreetMap contributors</a>',
   }
 ).addTo(map);
-
-// This is the logic of adding custom pins (Need implementation of marking a pin in order to join them together, not doing anything right now)  
-var LeafIcon = L.Icon.extend({
-    options: { 
-      iconSize: [40, 50],
-      iconAnchor: [20, 50],
-      popupAnchor: [0, -50],
-    }
-});
-var redPin = new LeafIcon({iconUrl: 'Pin.png'});
 
 // Overriding leaflets default pin to a custom one. (All images should be stored in separate folder, current folder structure is temporary)
 L.Marker.prototype.options.icon = L.icon({
@@ -48,14 +38,12 @@ const locStatus = document.getElementById("loc-status");
 
 btnLocate.addEventListener("click", () => {
   locStatus.textContent = "Requesting location…";
-  map.locate({ setView: true, maxZoom: 16 });
-  // Leaflet’s built-in geolocation helper
-  map.locate({
-    setView: true, // recenters the map
-    maxZoom: 16, // reasonable city-level zoom
-    enableHighAccuracy: true, // use GPS if available
-    timeout: 10000, // give up after 10s
-    watch: false, // one-shot; set true if you want continuous tracking
+  map.locate({ 
+    setView: true, 
+    maxZoom: 16,
+    enableHighAccuracy: true,
+    timeout: 10000,
+    watch: false,
   });
 });
 
@@ -96,22 +84,26 @@ map.on("locationerror", (e) => {
   map.setView([40.7128, -74.006], 12);
 });
 
-L.marker([51.5, -0.09], {icon: Pin}).addTo(map).bindPopup("I am a pin.");
+//This is the logic of adding custom pins (Need implementation of marking a pin in order to join them together, not doing anything right now)  
+var LeafIcon = L.Icon.extend({
+    options: { 
+      iconSize: [40, 50],
+      iconAnchor: [20, 50],
+      popupAnchor: [0, -50],
+    }
+});
+var redPin = new LeafIcon({iconUrl: 'Pin.png'});
 
 
-
-//task 4 ----------------------------------------------------------------------------------------
+// task 4 - click to add a bathroom pin and save it 
+// once user click on map a popup form to save a new bathroom pin opens
 map.on('click', clickOnMap);
 
-// when user click on map this must run
 function clickOnMap(e){
-  CreateMarker(e.latlng);
+  CreatePin(e.latlng);
 }
-
-//create new marker
-function CreateMarker(latlng) {
-  // The html part here is because the lat and lng are variables
-  // so I can't implement it inside the html file
+// creat marker
+function CreatePin(latlng) {
   const pinPopup = `
     <form>  <strong> New Bathroom to add </strong><br><br>
       <label for="pinName">Bathroom Name:</label>
@@ -125,7 +117,7 @@ function CreateMarker(latlng) {
     .openPopup();
 }
 
-// save pin function
+// save pin to localstorage and add marker to map
 function savePin(lat, lng){
   const pinName = document.getElementById("pinName").value;
   if(!pinName){
@@ -140,6 +132,8 @@ function savePin(lat, lng){
   alert('Pin saved successfully! ✨');
   L.marker([lat, lng], {icon: redPin}).addTo(map).bindPopup(`<strong>${pinName}</strong>`);
 }
+
+// load pins from localStorage on page load
 function loadPins(){
   const pins = JSON.parse(localStorage.getItem("bathroomPins")) || [];
   pins.forEach((pin) => {
