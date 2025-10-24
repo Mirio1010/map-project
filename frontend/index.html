@@ -4,9 +4,20 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Spoty</title>
-    <link rel="stylesheet" href="style.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <link rel="stylesheet" href="styles/style.css" />
+    <link rel="stylesheet" href="styles/cards.css">
+    <link rel="icon" href="/frontend/images/favicon.png" type="image/png">
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin=""
+    />
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+      crossorigin=""
+    ></script>
   </head>
   <body>
     <!-- Header -->
@@ -38,34 +49,38 @@
       </nav>
     </header>
 
-   
+    <main class="layout-full">
+      <!-- Left column: content -->
 
- <main class="layout-full">
-  <!-- Left column: content -->
-
-  
-  <section class="left-pane" aria-label="Left content">
-    <!-- Button "locate me for geo Location!" -->
-<button id="btn-locate">📍 Locate me</button>
-<p id="loc-status" aria-live="polite"></p>
+      <section class="left-pane" aria-label="Left content">
+        <button id="add-spot-btn" class="add-spot-btn">+ Add Spot</button>
+        <button id="btn-locate">📍 Locate me</button> 
 
 
-    <h1>Welcome</h1>
-    <p>This is the left content area. </p>
-  </section>
-
-  <!-- Right column: map -->
-  <section class="right-pane" aria-label="Map area">
-    <!-- map is here -->
-    <div id="map" class="map-canvas" role="img" aria-label="Map placeholder">
+        <!-- This is where cards will appear -->
+        <div id="pin-cards" class="pin-cards"></div> 
 
 
-    </div>
-  </section>
-</main>
+        <p id="loc-status" aria-live="polite"></p>
+        <p style="background-color: aliceblue; border-radius: 10px; text-align: center;">Click on "+ Add Spot" to add locations on the Map.</p>
 
+        
+      </section>
 
+      <!-- Right column: map -->
+      <section class="right-pane" aria-label="Map area">
+        <!-- map is here -->
+        <div
+          id="map"
+          class="map-canvas"
+          role="img"
+          aria-label="Map placeholder"
+        ></div>
+      </section>
+    </main>
 
-    <script src="main.js"></script>
+    <script src="scripts/main.js"></script>
+    <script src="scripts/addByAddress.js"></script>
+    <script src="scripts/pinsPanel.js"></script>
   </body>
 </html>
