@@ -145,3 +145,11 @@ body {
   height: 25px;
   cursor: pointer;
 }
+
+
+.footer-container {
+  background-color: #0b0d12cc;
+  color: #fff;
+  padding: 10px;
+  text-align: center;
+}
