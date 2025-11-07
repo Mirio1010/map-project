@@ -7,11 +7,10 @@ tabs.forEach((btn) => {
   });
 });
 
-
-
 //map initialization
 
 var map = L.map("map").setView([0,0],1);
+//A new map is blank. This line adds the picture of the streets (the "tiles") from the company MapTiler.
 L.tileLayer(
   "https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=lxScjRx8ItyJXrWd3tbU",
   {
@@ -28,7 +27,7 @@ L.Marker.prototype.options.icon = L.icon({
   popupAnchor: [-3, -76],
   shadowSize: [50, 64]
 })
-
+//this code controls the "Locate me" button.
 const btnLocate = document.getElementById("btn-locate");
 const locStatus = document.getElementById("loc-status");
 
@@ -47,6 +46,7 @@ window.pinKey = (lat, lng) => `${lat.toFixed(6)},${lng.toFixed(6)}`;
 let myMarker = null; 
 let myCircle = null;
 
+//this function asks web browser "Where is the user right now?"
 function locateMe() {
   if (locStatus) locStatus.textContent = 'Requesting location…';
   map.locate({
@@ -59,6 +59,7 @@ function locateMe() {
 }
 
 // Single handler: location found
+//if the browser finds users location this code runs it puts a marker and a blue circle on users spot.
 map.on('locationfound', (e) => {
   if (locStatus) locStatus.textContent = `Location found (±${Math.round(e.accuracy)} m).`;
  // const radius = e.accuracy; // define it if you draw the circle
@@ -72,6 +73,7 @@ map.on('locationfound', (e) => {
 });
 
 // Single handler: location error
+//if the browser cannot find your location example clicking block. this code runs.sets the map view to New York City.
 map.on('locationerror', (e) => {
   if (locStatus) locStatus.textContent = `Location error: ${e.message}`;
   console.warn('Location access denied or unavailable:', e.message);
@@ -79,9 +81,11 @@ map.on('locationerror', (e) => {
 });
 
 // Button triggers re-locate
+//this connects the button to the function. means when someone clicks the 'btn-locate' button, run the locateMe function.
 btnLocate?.addEventListener('click', locateMe);
 
 // AUTO locate once after map is initialized
+//this line runs the function one time automatically when the page first loads.
 locateMe();
 
 //---------------------------------------------------------------------------------------------------------------------------------
@@ -101,29 +105,42 @@ var redPin = new LeafIcon({ iconUrl: "Pin.png" });
 // once user click on map a popup form to save a new bathroom pin opens
 map.on('click', clickOnMap);
 
+//if anyone clicks anywhere on the map run this function
 function clickOnMap(e){
   CreatePin(e.latlng);
 }
 // create marker
-function CreatePin(latlng) {
-  const pinPopup = `
-    <form>  <strong> New spot to add </strong><br><br>
-      <label for="pinName">Name of spot:</label>
-      <input type="text" id="pinName" name="pinName"><br><br>
-      <button type="button" onclick="savePin(${latlng.lat}, ${latlng.lng})">Save spot</button>
-    </form>`;
 
-  L.marker(latlng, { icon: redPin })
-    .addTo(map)
-    .bindPopup(pinPopup)
-    .openPopup();
+function CreatePin(latlng) {
+  const uniquId=`form-${latlng.lat}-${latlng.lng}`;
+  const inputId=`pinName-${latlng.lat}-${latlng.lng}`;
+  const pinPopup=`
+    <form id="${uniquId}"><strong> New Bathroom to add</strong><br><br>
+       <label for="${inputId}">Bathroom Name:</label>
+       <input type="text" id="${inputId}" name="pinName"><br><br>
+       <div id="pin-error" style="color: red; front-size: 12px;"></div>
+       <button type="button" onclick="savePin(${latlng.lat},${latlng.lng},'${inputId}')">Save Bathroom spot</button>
+       </form>`;
+       L.popup()
+       .setLatLng(latlng)
+       .setContent(pinPopup)
+       .openOn(map);
 }
 
 // save pin to localstorage and add marker to map
-function savePin(lat, lng) {
-  const pinName = document.getElementById("pinName").value;
+function savePin(lat, lng,inputId) {
+  const pinNameInput = document.getElementById(inputId);
+  const pinName=pinNameInput.value.trim();//remove extra space
+
   if (!pinName) {
-    alert("Please enter a name for the pin.");
+    const errorDiv=pinNameInput.closest("form").querySelector("#pin-error");
+    if(errorDiv){
+      errorDiv.textContent=" Please enter Bathroom name. ";
+    }
+    else{
+      alert("Please enter a name for the pin.");
+    }
+    
     return;
   }
   const newPin = { name: pinName, lat: lat, lng: lng };
@@ -140,9 +157,12 @@ function savePin(lat, lng) {
 
   // register marker for later removal
   window.pinMarkers.set(window.pinKey(lat, lng), marker);
-
- 
-  window.renderPinCards && window.renderPinCards();
+  if(window.renderPinCards){
+    window.renderPinCards();
+  }
+  else{
+    location.reload();
+  }
 }
 
 // load pins from localStorage on page load
