@@ -30,6 +30,7 @@ body {
   background: #0b0d12cc; /* translucent for a modern look */
   backdrop-filter: blur(8px); /* glass effect (where supported) */
   border-bottom: 1px solid var(--border);
+  z-index: 2;
 }
 
 /* Header layout */
@@ -106,7 +107,7 @@ body {
 
 /* LEFT: content column */
 .left-pane {
-  overflow: auto; /* left column scrolls independently if long */
+   overflow-y: auto; /* left column scrolls independently if long */
   padding: 16px; /* inner breathing room */
 }
 
@@ -114,6 +115,8 @@ body {
 .right-pane {
   position: relative; /* positioning context for map canvas */
   overflow: hidden;
+  z-index: 0;
+  
 }
 
 /* Map canvas fills the right pane */
@@ -136,6 +139,7 @@ body {
   color: white;
   text-decoration: none;
   font-weight: bolder;
+  font-size: 2rem;
 }
 
 
@@ -153,3 +157,36 @@ body {
   padding: 10px;
   text-align: center;
 }
+
+
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: transform 0.25s ease;
+}
+
+.brand:hover {
+  transform: scale(1.08);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
