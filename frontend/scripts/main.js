@@ -7,17 +7,32 @@ tabs.forEach((btn) => {
   });
 });
 
+
 //map initialization
+/* -------------------------------------------------------------------------------------------------------------------
+The code in this section is for the tileLayer of the map. The tileLayer is responsible for setting how the map looks using the MapTiler API. If you want a different style, replace the 'STYLE' variable to any of the options below.
+*/
+const MAPTILER_KEY = "lxScjRx8ItyJXrWd3tbU";
 
 var map = L.map("map").setView([0,0],1);
 //A new map is blank. This line adds the picture of the streets (the "tiles") from the company MapTiler.
-L.tileLayer(
-  "https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=lxScjRx8ItyJXrWd3tbU",
-  {
-    attribution:
-      '<a href="https://www.maptiler.com/copyright/" target="_blank">&copy; MapTiler</a> <a href="https://www.openstreetmap.org/copyright" target="_blank">&copy; OpenStreetMap contributors</a>',
-  }
-).addTo(map);
+// choose one style name: 'streets', 'bright-v2', 'pastel', 'darkmatter', 'satellite', etc.
+const STYLE = "pastel"; // try 'streets' or 'pastel' or 'darkmatter'
+
+// MapTiler tile URL (works for the built-in style names)
+const tileUrl = `https://api.maptiler.com/maps/${STYLE}/{z}/{x}/{y}.png?key=${MAPTILER_KEY}`;
+const tileAttrib = '&copy; <a href="https://www.maptiler.com/">MapTiler</a> &copy; OpenStreetMap contributors';
+
+L.tileLayer(tileUrl, {
+  attribution: tileAttrib,
+  maxZoom: 20,
+  tileSize: 512,
+  zoomOffset: -1,
+  detectRetina: true
+}).addTo(map);
+//---------------------------------------------------------------------------------------------------------------------------------------
+
+
 
 // Overriding leaflets default pin to a custom one. (All images should be stored in separate folder, current folder structure is temporary)
 L.Marker.prototype.options.icon = L.icon({
@@ -69,7 +84,7 @@ map.on('locationfound', (e) => {
   if (myCircle) map.removeLayer(myCircle);
 
   myMarker = L.marker(e.latlng).addTo(map).bindPopup('You are here').openPopup();
-  myCircle = L.circle(e.latlng, { radius }).addTo(map);
+ 
 });
 
 // Single handler: location error
@@ -115,11 +130,11 @@ function CreatePin(latlng) {
   const uniquId=`form-${latlng.lat}-${latlng.lng}`;
   const inputId=`pinName-${latlng.lat}-${latlng.lng}`;
   const pinPopup=`
-    <form id="${uniquId}"><strong> New Bathroom to add</strong><br><br>
-       <label for="${inputId}">Bathroom Name:</label>
+    <form id="${uniquId}"><strong> New Location to add</strong><br><br>
+       <label for="${inputId}">Location Name:</label>
        <input type="text" id="${inputId}" name="pinName"><br><br>
        <div id="pin-error" style="color: red; front-size: 12px;"></div>
-       <button type="button" onclick="savePin(${latlng.lat},${latlng.lng},'${inputId}')">Save Bathroom spot</button>
+       <button type="button" onclick="savePin(${latlng.lat},${latlng.lng},'${inputId}')">Save location spot</button>
        </form>`;
        L.popup()
        .setLatLng(latlng)
@@ -135,7 +150,7 @@ function savePin(lat, lng,inputId) {
   if (!pinName) {
     const errorDiv=pinNameInput.closest("form").querySelector("#pin-error");
     if(errorDiv){
-      errorDiv.textContent=" Please enter Bathroom name. ";
+      errorDiv.textContent=" Please enter pin name. ";
     }
     else{
       alert("Please enter a name for the pin.");
@@ -166,19 +181,27 @@ function savePin(lat, lng,inputId) {
 }
 
 // load pins from localStorage on page load
-function loadPins(){
+function loadPins() {
   const pins = JSON.parse(localStorage.getItem("bathroomPins")) || [];
   pins.forEach((pin) => {
-    L.marker([pin.lat, pin.lng], {icon: redPin}).addTo(map).bindPopup(`<strong>${pin.name}</strong>`);
+    const popupParts = [`<strong>${pin.name}</strong>`];
+    if (pin.displayName)
+      popupParts.push(
+        `<div style="font-size:12px;color:#6b7280;">${pin.displayName}</div>`
+      );
+    if (pin.description)
+      popupParts.push(`<div style="margin-top:6px;">${pin.description}</div>`);
+    if (pin.images && pin.images.length)
+      popupParts.push(
+        `<div style="margin-top:6px;"><img src="${pin.images[0]}" alt="img" style="max-width:200px; max-height:140px; object-fit:cover; border-radius:6px;" /></div>`
+      );
+
+    const marker = L.marker([pin.lat, pin.lng], { icon: redPin })
+      .addTo(map)
+      .bindPopup(popupParts.join(""));
+
+    window.pinMarkers.set(window.pinKey(pin.lat, pin.lng), marker);
   });
-
-  pins.forEach((pin) => {
-  const marker = L.marker([pin.lat, pin.lng], { icon: redPin })
-    .addTo(map)
-    .bindPopup(`<strong>${pin.name}</strong>`);
-
-  window.pinMarkers.set(window.pinKey(pin.lat, pin.lng), marker);
-});
 }
 loadPins();
 

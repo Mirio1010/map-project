@@ -1,87 +1,101 @@
 <!DOCTYPE html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Spoty</title>
+    
+    <link rel="stylesheet" href="styles/style.css" />
+    <link rel="stylesheet" href="styles/cards.css" />
+    <link rel="icon" href="/frontend/images/favicon.png" type="image/png" />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin=""
+    />
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+      crossorigin=""
+    ></script>
 
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Spoty</title>
-  <link rel="stylesheet" href="styles/style.css" />
-  <link rel="stylesheet" href="styles/cards.css">
-  <link rel="icon" href="/frontend/images/favicon.png" type="image/png">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-</head>
+    <script src="https://kit.fontawesome.com/5ee687c2cf.js" crossorigin="anonymous"></script>
+  </head>
 
-<body>
+  <body>
+    <!-- Header -->
+    <header class="site-header">
+      <nav aria-label="Primary">
+        <a class="brand" href="#" data-route="home">Spoty <i class="fa-solid fa-map-location-dot"></i></a>
+        <ul class="tabs" role="tablist">
+          <li role="presentation">
+            <button role="tab" aria-selected="true" data-route="home">
+              Home
+            </button>
+          </li>
+          <li role="presentation">
+            <button role="tab" aria-selected="false" data-route="explore">
+              Explore
+            </button>
+          </li>
+          <li role="presentation">
+            <button role="tab" aria-selected="false" data-route="favorites">
+              Profile
+            </button>
+          </li>
+          <li role="presentation">
+            <button role="tab" aria-selected="false" data-route="about">
+              About
+            </button>
+          </li>
+        </ul>
+      </nav>
+    </header>
 
-  <!-- Header -->
-  <header class="site-header">
-    <nav aria-label="Primary">
-      <a class="brand" href="#" data-route="home">MapProject</a>
-      <ul class="tabs" role="tablist">
-        <li role="presentation">
-          <button role="tab" aria-selected="true" data-route="home">
-            Home
-          </button>
-        </li>
-        <li role="presentation">
-          <button role="tab" aria-selected="false" data-route="explore">
-            Explore
-          </button>
-        </li>
-        <li role="presentation">
-          <button role="tab" aria-selected="false" data-route="favorites">
-            Profile
-          </button>
-        </li>
-        <li role="presentation">
-          <button role="tab" aria-selected="false" data-route="about">
-            About
-          </button>
-        </li>
-      </ul>
-    </nav>
-  </header>
+    <main class="layout-full">
+      <!-- Left column: content -->
 
-  <main class="layout-full">
-    <!-- Left column: content -->
+      <section class="left-pane" aria-label="Left content">
+        <button id="add-spot-btn" class="add-spot-btn">+ Add Spot</button>
+        <button id="btn-locate">📍 Locate me</button>
 
-    <section class="left-pane" aria-label="Left content">
-      <button id="add-spot-btn" class="add-spot-btn">+ Add Spot</button>
-      <button id="btn-locate">📍 Locate me</button>
+        <!-- This is where cards will appear -->
+        <div id="pin-cards" class="pin-cards">hiii</div>
 
+        <!-- <p id="loc-status" aria-live="polite"></p> -->
+        <p
+          style="
+            background-color: aliceblue;
+            border-radius: 10px;
+            text-align: center;
+          "
+        >
+          Click on "+ Add Spot" to add locations on the Map.
+        </p>
+      </section>
 
-      <!-- This is where cards will appear -->
-      <div id="pin-cards" class="pin-cards"></div>
+      <!-- Right column: map -->
+      <section class="right-pane" aria-label="Map area">
+        <!-- map is here -->
+        <div
+          id="map"
+          class="map-canvas"
+          role="img"
+          aria-label="Map placeholder"
+        ></div>
+      </section>
+    </main>
 
+    <script src="scripts/main.js"></script>
+    <script src="scripts/addByAddress.js"></script>
+    <script src="scripts/pinsPanel.js"></script>
 
-      <!-- <p id="loc-status" aria-live="polite"></p> -->
-      <p style="background-color: aliceblue; border-radius: 10px; text-align: center;">Click on "+ Add Spot" to add
-        locations on the Map.</p>
-
-
-    </section>
-
-    <!-- Right column: map -->
-    <section class="right-pane" aria-label="Map area">
-      <!-- map is here -->
-      <div id="map" class="map-canvas" role="img" aria-label="Map placeholder"></div>
-    </section>
-  </main>
-
-  <script src="scripts/main.js"></script>
-  <script src="scripts/addByAddress.js"></script>
-  <script src="scripts/pinsPanel.js"></script>
-
-  <!-- Footer -->
-  <div class="footer-container">
-    <footer>
-      <p>© 2025 Spoty | Built for CUNY Tech Prep.</p>
-    </footer>
-  </div>
-
-</body>
-
+    <!-- Footer -->
+    <div class="footer-container">
+      <footer>
+        <p>© 2025 Spoty | Built for CUNY Tech Prep.</p>
+      </footer>
+    </div>
+  </body>
 </html>

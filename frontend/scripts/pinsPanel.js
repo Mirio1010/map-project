@@ -66,18 +66,38 @@ pinsPanel.js
       .map((pin, idx) => {
         const name = pin.name || "Untitled pin";
         const addr = pin.address || "Resolving address…";
-        return `
-        <article class="pin-card" data-index="${idx}">
-          <div class="pin-row">
-            <h3 title="${escapeHtml(name)}">${escapeHtml(name)}</h3>
-          </div>
-          <p class="addr">${escapeHtml(addr)}</p>
-          <div class="pin-actions">
-            <button data-action="zoom">Zoom</button>
-            <button data-action="delete">Delete</button>
-          </div>
-        </article>
-      `;
+       return `
+  <article class="pin-card" data-index="${idx}">
+    <div class="pin-row" style="display:flex; gap:8px; align-items:center;">
+      ${
+        pin.images && pin.images.length
+          ? `<img src="${pin.images[0]}" alt="thumb" style="width:72px;height:56px;object-fit:cover;border-radius:6px;border:1px solid #eee;" />`
+          : `<div style="width:72px;height:56px;border-radius:6px;background:#f3f4f6;border:1px dashed #e5e7eb;display:flex;align-items:center;justify-content:center;color:#9ca3af;font-size:12px;">No image</div>`
+      }
+      <div style="flex:1;">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <h3 title="${escapeHtml(
+            name
+          )}" style="margin:0;font-size:15px;">${escapeHtml(name)}</h3>
+        </div>
+        <p class="addr" style="margin:6px 0 0 0; color:#6b7280; font-size:13px;">${escapeHtml(
+          addr
+        )}</p>
+        ${
+          pin.description
+            ? `<p style="margin:6px 0 0 0; font-size:13px; color:#111827;">${escapeHtml(
+                pin.description
+              )}</p>`
+            : ""
+        }
+      </div>
+    </div>
+    <div class="pin-actions" style="margin-top:8px;">
+      <button data-action="zoom">Zoom</button>
+      <button data-action="delete">Delete</button>
+    </div>
+  </article>
+`;
       })
       .join("");
 
@@ -154,3 +174,5 @@ pinsPanel.js
   // Initial paint
   document.addEventListener("DOMContentLoaded", renderPinCards);
 })();
+
+
