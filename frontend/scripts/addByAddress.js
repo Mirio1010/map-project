@@ -231,7 +231,7 @@ imagePreview.addEventListener("click", (e) => {
       const description = descInput.value.trim();
 
       // Save to localStorage: include description and images (data URLs)
-      const pins = JSON.parse(localStorage.getItem("bathroomPins")) || [];
+      const pins = JSON.parse(localStorage.getItem("spotPins")) || [];
       pins.push({
         name: pinName,
         lat,
@@ -241,7 +241,7 @@ imagePreview.addEventListener("click", (e) => {
         images: selectedImageDataUrls.slice(), // array of data URLs
         createdAt: new Date().toISOString(),
       });
-      localStorage.setItem("bathroomPins", JSON.stringify(pins));
+      localStorage.setItem("spotPins", JSON.stringify(pins));
 
       // Add marker with extended popup (show first image + description in popup)
       const popupHtmlParts = [`<strong>${escapeHtml(pinName)}</strong>`];
