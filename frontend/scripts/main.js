@@ -142,7 +142,7 @@ function CreatePin(latlng) {
     <label for="${imgId}">Images (up to 5):</label>
     <input type="file" id="${imgId}" name="pinImg" accept="image/*" multiple style="width: 100%;margin-bottom:10px;"><br>
     <div id="pin-error" style="color: red; front-size: 12px;margin-bottom:10px;"></div>
-    <button type="button" onclick="savePin(${latlng.lat},${latlng.lng},'${inputId}','${descId}','${imgId}')">Save location spot</button>
+    <button type="button" onclick="savePin(${latlng.lat}, ${latlng.lng}, '${inputId}', '${descId}', '${imgId}')">Save location spot</button>
     </form>`;
   L.popup({maxWidth: 250})
     .setLatLng(latlng)
@@ -163,9 +163,9 @@ function readImageFilesAsDataUrls(fileList) {
       const reader=new FileReader();
       reader.onload=()=>{
         resolve(reader.result);
-        reader.onerror=reject;
-        reader.readAsDataURL(file);
       };
+      reader.onerror=reject;
+      reader.readAsDataURL(file);
     });
     filePromises.push(promise);
   }
