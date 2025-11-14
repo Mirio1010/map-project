@@ -16,7 +16,7 @@ pinsPanel.js
    @author - Miguelangel Ortega 
 */
 (function () {
-  const STORAGE_KEY = "bathroomPins";
+  const STORAGE_KEY = "spotPins";
   const cardsEl = document.getElementById("pin-cards");
 
   // Utilities
