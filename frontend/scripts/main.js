@@ -127,48 +127,101 @@ function clickOnMap(e){
 // create marker
 
 function CreatePin(latlng) {
-  const uniquId=`form-${latlng.lat}-${latlng.lng}`;
+  const formId=`form-${latlng.lat}-${latlng.lng}`;
   const inputId=`pinName-${latlng.lat}-${latlng.lng}`;
+  const descId=`pinDesc-${latlng.lat}-${latlng.lng}`;
+  const imgId=`pinImg-${latlng.lat}-${latlng.lng}`;
+
   const pinPopup=`
-    <form id="${uniquId}"><strong> New Location to add</strong><br><br>
-       <label for="${inputId}">Location Name:</label>
-       <input type="text" id="${inputId}" name="pinName"><br><br>
-       <div id="pin-error" style="color: red; front-size: 12px;"></div>
-       <button type="button" onclick="savePin(${latlng.lat},${latlng.lng},'${inputId}')">Save location spot</button>
-       </form>`;
-       L.popup()
-       .setLatLng(latlng)
-       .setContent(pinPopup)
-       .openOn(map);
+    <form id="${formId}" style="min-width: 200px;" max-height: 300px; overflow-y: auto;padding-right: 5px;">
+    <strong> New Location to add</strong><br><br>
+    <label for="${inputId}">Location Name:</label><br>
+    <input type="text" id="${inputId}" name="pinName" style="width: 100%;margin-bottom:10px;"><br><br>
+    <label for="${descId}">Description:</label>
+    <textarea id="${descId}" name="pinDesc" rows="2" style="width: 100%;margin-bottom:10px;"></textarea><br><br>
+    <label for="${imgId}">Images (up to 5):</label>
+    <input type="file" id="${imgId}" name="pinImg" accept="image/*" multiple style="width: 100%;margin-bottom:10px;"><br>
+    <div id="pin-error" style="color: red; front-size: 12px;margin-bottom:10px;"></div>
+    <button type="button" onclick="savePin(${latlng.lat},${latlng.lng},'${inputId}','${descId}','${imgId}')">Save location spot</button>
+    </form>`;
+  L.popup({maxWidth: 250})
+    .setLatLng(latlng)
+    .setContent(pinPopup)
+    .openOn(map);
+}
+//helper function to read multiple images files as data urls
+//@parm {FileList} file list from input type file
+//@return {Promise<string[]>} array of data url strings
+
+function readImageFilesAsDataUrls(fileList) {
+  const filePromises=[];
+  const files=Array.from(fileList).slice(0,5); // limit to 5 files
+  for(const file of files){
+    if(!file.type.startsWith('image/')) continue; // skip non-image files
+    if(file.size > 5 * 1024 * 1024) continue; // skip files larger than 5MB
+    const promise=new Promise((resolve,reject)=>{
+      const reader=new FileReader();
+      reader.onload=()=>{
+        resolve(reader.result);
+        reader.onerror=reject;
+        reader.readAsDataURL(file);
+      };
+    });
+    filePromises.push(promise);
+  }
+  return Promise.all(filePromises);//return one promise
 }
 
-// save pin to localstorage and add marker to map
-function savePin(lat, lng,inputId) {
-  const pinNameInput = document.getElementById(inputId);
-  const pinName=pinNameInput.value.trim();//remove extra space
 
-  if (!pinName) {
-    const errorDiv=pinNameInput.closest("form").querySelector("#pin-error");
+// save pin to localstorage and add marker to map
+async function savePin(lat, lng,inputId,descId,imgId) {
+  //get form elements by id
+  const nameInput = document.getElementById(inputId);
+  const descInput = document.getElementById(descId);
+  const imgInput = document.getElementById(imgId);
+  //get values from form elements
+
+  const name=nameInput.value.trim();//remove extra spaces
+  const description=descInput.value.trim();//remove extra spaces
+  const files=imgInput.files;//get files from input
+  //validate the name
+  if (!name) {
+    const errorDiv=nameInput.closest("form").querySelector("#pin-error");
     if(errorDiv){
-      errorDiv.textContent=" Please enter pin name. ";
+      errorDiv.textContent=" Please enter spot name. ";
     }
     else{
-      alert("Please enter a name for the pin.");
+      alert("Please enter a name for the spot.");
     }
     
     return;
   }
-  const newPin = { name: pinName, lat: lat, lng: lng };
-  const pins = JSON.parse(localStorage.getItem("bathroomPins")) || [];
+  //read image files
+  const images= await readImageFilesAsDataUrls(files);
+  //build pin object
+  const newPin={
+    name,
+    lat,
+    lng,
+    description,
+    images,
+  };
+//save to local storage
+
+  const pins = JSON.parse(localStorage.getItem("spotPins")) || [];
   pins.push(newPin);
-  localStorage.setItem("bathroomPins", JSON.stringify(pins));
+  localStorage.setItem("spotPins", JSON.stringify(pins));
 
   map.closePopup();
-  alert("Pin saved successfully! ✨");
+  //create the marker
 
+
+  const popupHtml =`<strong>${name}</strong><br>
+  ${description ? `<br>${description}` : ""}
+  ${(images && images[0])? `<br><img src="${images[0]}" alt="preview" style="width:100px; max-height:automargin-top:5px;" />` : ""}`;
   const marker = L.marker([lat, lng], { icon: redPin })
     .addTo(map)
-    .bindPopup(`<strong>${pinName}</strong>`);
+    .bindPopup(popupHtml);
 
   // register marker for later removal
   window.pinMarkers.set(window.pinKey(lat, lng), marker);
@@ -182,7 +235,7 @@ function savePin(lat, lng,inputId) {
 
 // load pins from localStorage on page load
 function loadPins() {
-  const pins = JSON.parse(localStorage.getItem("bathroomPins")) || [];
+  const pins = JSON.parse(localStorage.getItem("SpotPins")) || [];
   pins.forEach((pin) => {
     const popupParts = [`<strong>${pin.name}</strong>`];
     if (pin.displayName)
