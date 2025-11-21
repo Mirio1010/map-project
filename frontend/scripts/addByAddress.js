@@ -58,7 +58,7 @@ function escapeHtml(str) {
 
       <!-- NEW images input -->
       <label style="display:grid; gap:6px;">
-        <span style="font-size:12px; color:#6b7280;">Images (optional, up to 5)</span>
+        <span style="font-size:12px; color:#6b7280;">choose an image</span>
         <input id="addr-images" type="file" accept="image/*" multiple />
       </label>
 
@@ -89,7 +89,7 @@ const descInput = modal.querySelector("#addr-desc");
 const imagesInput = modal.querySelector("#addr-images");
 const imagePreview = modal.querySelector("#addr-image-preview");
 
-const MAX_IMAGES = 5;
+const MAX_IMAGES = 1;
 const MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
 let selectedImageDataUrls = [];
 

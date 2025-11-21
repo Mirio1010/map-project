@@ -139,7 +139,7 @@ function CreatePin(latlng) {
     <input type="text" id="${inputId}" name="pinName" style="width: 100%;margin-bottom:10px;"><br><br>
     <label for="${descId}">Description:</label>
     <textarea id="${descId}" name="pinDesc" rows="2" style="width: 100%;margin-bottom:10px;"></textarea><br><br>
-    <label for="${imgId}">Images (up to 5):</label>
+    <label for="${imgId}">Image:</label>
     <input type="file" id="${imgId}" name="pinImg" accept="image/*" multiple style="width: 100%;margin-bottom:10px;"><br>
     <div id="pin-error" style="color: red; front-size: 12px;margin-bottom:10px;"></div>
     <button type="button" onclick="savePin(${latlng.lat}, ${latlng.lng}, '${inputId}', '${descId}', '${imgId}')">Save location spot</button>
