@@ -235,7 +235,7 @@ async function savePin(lat, lng,inputId,descId,imgId) {
 
 // load pins from localStorage on page load
 function loadPins() {
-  const pins = JSON.parse(localStorage.getItem("SpotPins")) || [];
+  const pins = JSON.parse(localStorage.getItem("spotPins")) || [];
   pins.forEach((pin) => {
     const popupParts = [`<strong>${pin.name}</strong>`];
     if (pin.displayName)
