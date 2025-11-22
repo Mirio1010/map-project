@@ -5,6 +5,9 @@
 ## Overview
 This site consists of an interactive map, where users can drop pins anywhere. Every pin can have a tag (restaurant, event, nightlife, etc…). The user can only see pins from other users that they are connected to. For example, if your friend pins a pop-up store, the pin will appear on my map along with a description like “Cool clothing store, only open for 3 more days!!”.
 
+![Map demo](./frontend/images/demo.gif)
+
+
 ### MVP’s:
 - Map Background  
 - Drop a pin  
