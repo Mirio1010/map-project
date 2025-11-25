@@ -1,34 +1,20 @@
 import React from "react";
-export default function Header() {
+import Tabs from "./Tabs";
+
+export default function Header({ onRouteChange }) {
+  const tabList = [
+    { label: "Home", route: "home" },
+    { label: "Explore", route: "explore" },
+    { label: "Profile", route: "profile" },
+    { label: "About", route: "about" },
+  ];
+
   return (
     <header className="site-header">
-      <nav aria-label="Primary">
         <a className="brand" href="#" data-route="home">
           Spoty <i className="fa-solid fa-map-location-dot"></i>
         </a>
-        <ul className="tabs" role="tablist">
-          <li role="presentation">
-            <button role="tab" aria-selected="true" data-route="home">
-              Home
-            </button>
-          </li>
-          <li role="presentation">
-            <button role="tab" aria-selected="false" data-route="explore">
-              Explore
-            </button>
-          </li>
-          <li role="presentation">
-            <button role="tab" aria-selected="false" data-route="favorites">
-              Profile
-            </button>
-          </li>
-          <li role="presentation">
-            <button role="tab" aria-selected="false" data-route="about">
-              About
-            </button>
-          </li>
-        </ul>
-      </nav>
+        <Tabs tabs={tabList} onSelect={onRouteChange} />
     </header>
   );
 }

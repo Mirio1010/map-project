@@ -32,12 +32,9 @@ body {
 }
 
 .layout-full {
-  display: grid;
   grid-template-columns: 440px 1fr;
   flex: 1;
 }
-
-
 
 
 /* Header container */
@@ -52,6 +49,15 @@ body {
 }
 
 /* Header layout */
+
+.home-layout {
+  display: grid;
+  grid-template-columns: 440px 1fr; /* left pane 440px, right pane fills remaining space */
+  gap: 0; /* optional */
+  height: 100%; /* fills parent container */
+}
+
+
 .site-header nav {
   max-width: 1200px;
   margin: 0 auto;
@@ -95,16 +101,6 @@ body {
   background: #767d93;
 }
 
-/* Handle narrow screens: tabs should wrap instead of overflowing */
-@media (max-width: 520px) {
-  .site-header nav {
-    flex-wrap: wrap;
-  }
-  .tabs {
-    flex-wrap: wrap;
-  }
-}
-
 /* Page as two rows: sticky header + fill-the-rest main */
 html,
 body {
@@ -118,10 +114,6 @@ body {
 /* Full-height two-column split under the header */
 .layout-full {
   height: 100%; /* occupies the full remaining viewport */
-  display: grid;
-  grid-template-columns: 440px minmax(0, 1fr); /* left fixed-ish, right expands */
-  gap: 0; /* no gutters like MapQuest */
-  grid-row: 2 / 3;
 }
 
 /* LEFT: content column */
@@ -143,6 +135,7 @@ body {
 .right-pane {
   position: relative; /* positioning context for map canvas */
   height: 100%;
+  width: 100%;
 }
 
 .leaflet-container {
@@ -160,12 +153,22 @@ body {
 
 /* Responsive: when narrow, stack and keep map big */
 @media (max-width: 900px) {
-  .layout-full {
+  .home-layout {
     grid-template-columns: 1fr; /* stack */
   }
   .right-pane {
     min-height: 50vh;
   } /* give the map presence when stacked */
+}
+
+/* Handle narrow screens: tabs should wrap instead of overflowing */
+@media (max-width: 520px) {
+  .site-header nav {
+    flex-wrap: wrap;
+  }
+  .tabs {
+    flex-wrap: wrap;
+  }
 }
 
 .brand {
@@ -208,24 +211,3 @@ text-align: center;
 .brand:hover {
   transform: scale(1.08);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
