@@ -10,6 +10,13 @@ const redPin = L.icon({
   popupAnchor: [-3, -76],
   shadowSize: [50, 64]
 });
+//stars helper
+const renderStars = (rating) => {
+  if (!rating) return null;
+  return (
+    <span style={{ color: '#FFD700'}}>{'★'.repeat(rating)}</span>
+  );
+};
 
 // helper handle clicks on map
 function ClickHandler({ onClickOnMap }) {
@@ -58,6 +65,8 @@ function Map({ pins, onClickOnMap, mapAction }) {
             <Popup>
               <div style={{ maxWidth: '200px' }}>
                 <strong style={{ fontSize: '15px' }}>{pin.name}</strong>
+              {/* show stars here */}
+              {pin.rating>0 && <div>{renderStars(pin.rating)}</div>}
                 {pin.images && pin.images.length > 0 && (
                   <img 
                     src={pin.images[0]} 
