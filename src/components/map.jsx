@@ -1,14 +1,21 @@
-import { useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
+import { useEffect } from "react";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  Popup,
+  useMap,
+  useMapEvents,
+} from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 
 const redPin = L.icon({
-  iconUrl: '/Pin.png',       
-  iconSize: [40, 50],       
+  iconUrl: "/Pin.png",
+  iconSize: [40, 50],
   iconAnchor: [20, 50],
   popupAnchor: [-3, -76],
-  shadowSize: [50, 64]
+  shadowSize: [50, 64],
 });
 
 // helper handle clicks on map
@@ -21,51 +28,125 @@ function ClickHandler({ onClickOnMap }) {
   return null;
 }
 
-// helper handle zoom/Locate Actions
-function MapController({ mapAction }) {
+// helper handle zoom/Locate/Popup Actions
+function MapController({ mapAction, pins, sidebarOpen }) {
   const map = useMap();
   useEffect(() => {
     if (!mapAction) return;
-    
-    if (mapAction.type === 'ZOOM') {
+
+    if (mapAction.type === "ZOOM") {
       map.flyTo([mapAction.lat, mapAction.lng], 16, { duration: 0.6 });
     }
-    
-    if (mapAction.type === 'LOCATE') {
+
+    if (mapAction.type === "ZOOM_AND_POPUP") {
+      map.flyTo([mapAction.lat, mapAction.lng], 16, { duration: 0.6 });
+      // Open popup after zoom animation completes
+      setTimeout(() => {
+        const pinIndex = mapAction.pinIndex;
+        const markers = map._layers;
+        let popupCount = 0;
+        for (const key in markers) {
+          if (markers[key] instanceof L.Marker && popupCount === pinIndex) {
+            markers[key].openPopup();
+            break;
+          }
+          if (markers[key] instanceof L.Marker) popupCount++;
+        }
+      }, 700);
+    }
+
+    if (mapAction.type === "LOCATE") {
       map.locate({ setView: true, maxZoom: 16 });
       map.on("locationfound", (e) => {
         L.marker(e.latlng).addTo(map).bindPopup("You are here").openPopup();
       });
     }
   }, [mapAction, map]);
+
+  // Trigger map resize when sidebar opens/closes
+  useEffect(() => {
+    // Call invalidateSize multiple times at different intervals to ensure it catches the resize
+    const timers = [
+      setTimeout(() => map.invalidateSize(), 100),
+      setTimeout(() => map.invalidateSize(), 300),
+      setTimeout(() => map.invalidateSize(), 500),
+    ];
+    return () => timers.forEach((timer) => clearTimeout(timer));
+  }, [sidebarOpen, map]);
+
   return null;
 }
 
-function Map({ pins, onClickOnMap, mapAction }) {
+function Map({ pins, onClickOnMap, mapAction, sidebarOpen }) {
   return (
-    <div className="right-pane" style={{ height: '100%', width: '100%' }}>
-      <MapContainer center={[40.7128, -74.0060]} zoom={12} style={{ height: '100%', width: '100%' }}>
+    <div className="right-pane" style={{ height: "100%", width: "100%" }}>
+      <MapContainer
+        center={[40.7128, -74.006]}
+        zoom={12}
+        style={{ height: "100%", width: "100%" }}
+      >
         <TileLayer
           attribution='&copy; <a href="https://www.maptiler.com/">MapTiler</a>'
           url="https://api.maptiler.com/maps/pastel/{z}/{x}/{y}.png?key=lxScjRx8ItyJXrWd3tbU"
         />
 
         <ClickHandler onClickOnMap={onClickOnMap} />
-        <MapController mapAction={mapAction} />
+        <MapController
+          mapAction={mapAction}
+          pins={pins}
+          sidebarOpen={sidebarOpen}
+        />
 
         {pins.map((pin, index) => (
           <Marker key={index} position={[pin.lat, pin.lng]} icon={redPin}>
             <Popup>
-              <div style={{ maxWidth: '200px' }}>
-                <strong style={{ fontSize: '15px' }}>{pin.name}</strong>
-                {pin.images && pin.images.length > 0 && (
-                  <img 
-                    src={pin.images[0]} 
-                    alt="spot" 
-                    style={{ width: '100%', height: 'auto', borderRadius: '6px', marginTop: '5px', objectFit: 'cover' }} 
-                  />
-                )}
-                {pin.description && <div style={{ marginTop: '5px', fontSize: '13px' }}>{pin.description}</div>}
+              <div style={{ maxWidth: "220px", padding: "0" }}>
+                <div style={{ padding: "12px" }}>
+                  <h3
+                    style={{
+                      margin: "0 0 8px 0",
+                      fontSize: "16px",
+                      fontWeight: "600",
+                      color: "#111827",
+                    }}
+                  >
+                    {pin.name}
+                  </h3>
+                  {pin.images && pin.images.length > 0 && (
+                    <div
+                      style={{
+                        marginBottom: "10px",
+                        overflow: "hidden",
+                        borderRadius: "8px",
+                        boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                      }}
+                    >
+                      <img
+                        src={pin.images[0]}
+                        alt="spot"
+                        style={{
+                          width: "100%",
+                          height: "auto",
+                          maxHeight: "250px",
+                          objectFit: "contain",
+                          display: "block",
+                        }}
+                      />
+                    </div>
+                  )}
+                  {pin.description && (
+                    <p
+                      style={{
+                        margin: "0",
+                        fontSize: "13px",
+                        lineHeight: "1.5",
+                        color: "#6b7280",
+                      }}
+                    >
+                      {pin.description}
+                    </p>
+                  )}
+                </div>
               </div>
             </Popup>
           </Marker>

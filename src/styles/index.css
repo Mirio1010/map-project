@@ -1,12 +1,14 @@
-/* src/index.css */
+/* src/styles/index.css */
 
 /* 1. full screen */
-html, body, #root {
+html,
+body,
+#root {
   height: 100%;
   width: 100%;
   margin: 0;
   padding: 0;
-  overflow: hidden; 
+  overflow: hidden;
 }
 /* 2. main app container */
 .app-container {
@@ -14,14 +16,13 @@ html, body, #root {
   flex-direction: column;
   height: 100%;
   width: 100%;
-  background-color: white; 
+  background-color: white;
 }
 
 /* 3. CONTENT LAYOUT */
 .layout-full {
   flex: 1; /* Fills ALL remaining vertical space */
-  display: grid;
-  grid-template-columns: 440px minmax(0, 1fr);
+  display: flex;
   width: 100%;
   overflow: hidden;
 }
@@ -34,7 +35,11 @@ html, body, #root {
 
 /* 5. RESPONSIVE */
 @media (max-width: 900px) {
-  .layout-full {
-    grid-template-columns: 1fr;
+  .site-header nav {
+    gap: 1rem;
   }
+}
+
+.left-pane {
+  background-color: #5f5d5d;
 }
