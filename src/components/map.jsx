@@ -9,14 +9,10 @@ import {
 } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { createPinIcon, createDefaultPinIcon } from "../utils/pinCategories";
 
-const redPin = L.icon({
-  iconUrl: "/Pin.png",
-  iconSize: [40, 50],
-  iconAnchor: [20, 50],
-  popupAnchor: [-3, -76],
-  shadowSize: [50, 64],
-});
+// Default pin fallback
+const defaultPin = createDefaultPinIcon();
 
 // helper handle clicks on map
 function ClickHandler({ onClickOnMap }) {
@@ -58,7 +54,10 @@ function MapController({ mapAction, pins, sidebarOpen }) {
     if (mapAction.type === "LOCATE") {
       map.locate({ setView: true, maxZoom: 16 });
       map.on("locationfound", (e) => {
-        L.marker(e.latlng).addTo(map).bindPopup("You are here").openPopup();
+        L.marker(e.latlng, { icon: defaultPin })
+          .addTo(map)
+          .bindPopup("You are here")
+          .openPopup();
       });
     }
   }, [mapAction, map]);
@@ -97,9 +96,15 @@ function Map({ pins, onClickOnMap, mapAction, sidebarOpen }) {
           sidebarOpen={sidebarOpen}
         />
 
-        {pins.map((pin, index) => (
-          <Marker key={index} position={[pin.lat, pin.lng]} icon={redPin}>
-            <Popup>
+        {pins.map((pin, index) => {
+          // Get the appropriate pin icon based on category
+          const pinIcon = pin.category
+            ? createPinIcon(pin.category)
+            : defaultPin;
+
+          return (
+            <Marker key={index} position={[pin.lat, pin.lng]} icon={pinIcon}>
+              <Popup>
               <div style={{ maxWidth: "220px", padding: "0" }}>
                 <div style={{ padding: "12px" }}>
                   <h3
@@ -150,7 +155,8 @@ function Map({ pins, onClickOnMap, mapAction, sidebarOpen }) {
               </div>
             </Popup>
           </Marker>
-        ))}
+          );
+        })}
       </MapContainer>
     </div>
   );
