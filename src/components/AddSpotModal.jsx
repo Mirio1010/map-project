@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { categories } from "../utils/pinCategories";
 
 function AddSpotModal({ isOpen, onClose, onSave, initialCoords, initialPin }) {
   if (!isOpen) return null;
@@ -12,6 +13,7 @@ function AddSpotModal({ isOpen, onClose, onSave, initialCoords, initialPin }) {
   const [status, setStatus] = useState("");
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [category, setCategory] = useState("food-drinks");
   const abortControllerRef = useRef(null);
   const cacheRef = useRef(new Map());
   const debounceTimerRef = useRef(null);
@@ -24,6 +26,7 @@ function AddSpotModal({ isOpen, onClose, onSave, initialCoords, initialPin }) {
       setDesc(initialPin.description || "");
       setImages(initialPin.images || []);
       setCoords({ lat: initialPin.lat, lng: initialPin.lng });
+      setCategory(initialPin.category || "food-drinks");
       return;
     }
 
@@ -48,6 +51,10 @@ function AddSpotModal({ isOpen, onClose, onSave, initialCoords, initialPin }) {
       setDesc(initialPin.description || "");
       setImages(initialPin.images || []);
       setCoords({ lat: initialPin.lat, lng: initialPin.lng });
+      setCategory(initialPin.category || "food-drinks");
+    } else {
+      // Reset category when opening new pin modal
+      setCategory("food-drinks");
     }
   }, [initialPin, isOpen]);
 
@@ -144,6 +151,7 @@ function AddSpotModal({ isOpen, onClose, onSave, initialCoords, initialPin }) {
       lat: coords ? coords.lat : 0,
       lng: coords ? coords.lng : 0,
       images: images,
+      category: category,
       createdAt: new Date().toISOString(),
     };
 
@@ -153,6 +161,7 @@ function AddSpotModal({ isOpen, onClose, onSave, initialCoords, initialPin }) {
     setAddress("");
     setDesc("");
     setImages([]);
+    setCategory("food-drinks");
     setStatus("");
   };
 
@@ -285,6 +294,26 @@ function AddSpotModal({ isOpen, onClose, onSave, initialCoords, initialPin }) {
               borderRadius: "4px",
             }}
           />
+
+          <label style={{ fontSize: "12px", color: "#666" }}>
+            Category (Pin Color)
+          </label>
+          <select
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            style={{
+              padding: "8px",
+              border: "1px solid #ccc",
+              borderRadius: "4px",
+              fontSize: "14px",
+            }}
+          >
+            {categories.map((cat) => (
+              <option key={cat.value} value={cat.value}>
+                {cat.label}
+              </option>
+            ))}
+          </select>
 
           <label style={{ fontSize: "12px", color: "#666" }}>Images</label>
           <input

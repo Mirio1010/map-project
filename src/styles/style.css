@@ -195,6 +195,26 @@ body {
   font-size: 14px;
 }
 
+/* tab content pages */
+.tab-content {
+  background: var(--bg);
+  min-height: calc(100vh - 140px);
+  padding: 2rem;
+  color: var(--muted);
+}
+
+.tab-content h1 {
+  color: var(--muted);
+  margin-bottom: 1rem;
+  font-size: 2rem;
+}
+
+.tab-content p {
+  color: var(--muted);
+  line-height: 1.6;
+  margin-bottom: 1rem;
+}
+
 /* footer */
 .site-footer {
   background: #151821;

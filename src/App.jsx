@@ -5,6 +5,9 @@ import Sidebar from "./components/sidebar";
 import Map from "./components/map";
 import AddSpotModal from "./components/AddSpotModal";
 import Footer from "./components/Footer";
+import Explore from "./components/Explore";
+import Profile from "./components/Profile";
+import About from "./components/About";
 
 import "./styles/style.css";
 import "./styles/cards.css";
@@ -17,6 +20,7 @@ function App() {
   const [editIndex, setEditIndex] = useState(null);
   const [initialPin, setInitialPin] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [activeTab, setActiveTab] = useState("home");
 
   // 1. load Pins on startup
   useEffect(() => {
@@ -80,46 +84,94 @@ function App() {
     setMapAction({ type: "LOCATE" });
   };
 
+  const renderContent = () => {
+    switch (activeTab) {
+      case "home":
+        return (
+          <div className="layout-full">
+            <div className={`sidebar-wrapper ${!sidebarOpen ? "hidden" : ""}`}>
+              <Sidebar
+                pins={pins}
+                onDelete={handleDeletePin}
+                onEdit={handleEdit}
+                onZoom={handleZoom}
+                onAddSpot={() => {
+                  setClickedLocation(null);
+                  setInitialPin(null);
+                  setEditIndex(null);
+                  setIsModalOpen(true);
+                }}
+                onLocate={handleLocate}
+              />
+            </div>
+
+            <Map
+              pins={pins}
+              onClickOnMap={handleMapClick}
+              mapAction={mapAction}
+              sidebarOpen={sidebarOpen}
+            />
+          </div>
+        );
+      case "explore":
+        return <Explore />;
+      case "profile":
+        return <Profile />;
+      case "about":
+        return <About />;
+      default:
+        return (
+          <div className="layout-full">
+            <div className={`sidebar-wrapper ${!sidebarOpen ? "hidden" : ""}`}>
+              <Sidebar
+                pins={pins}
+                onDelete={handleDeletePin}
+                onEdit={handleEdit}
+                onZoom={handleZoom}
+                onAddSpot={() => {
+                  setClickedLocation(null);
+                  setInitialPin(null);
+                  setEditIndex(null);
+                  setIsModalOpen(true);
+                }}
+                onLocate={handleLocate}
+              />
+            </div>
+
+            <Map
+              pins={pins}
+              onClickOnMap={handleMapClick}
+              mapAction={mapAction}
+              sidebarOpen={sidebarOpen}
+            />
+          </div>
+        );
+    }
+  };
+
   return (
     <div className="app-container">
-      <Header onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
-
-      <div className="layout-full">
-        <div className={`sidebar-wrapper ${!sidebarOpen ? "hidden" : ""}`}>
-          <Sidebar
-            pins={pins}
-            onDelete={handleDeletePin}
-            onEdit={handleEdit}
-            onZoom={handleZoom}
-            onAddSpot={() => {
-              setClickedLocation(null);
-              setInitialPin(null);
-              setEditIndex(null);
-              setIsModalOpen(true);
-            }}
-            onLocate={handleLocate}
-          />
-        </div>
-
-        <Map
-          pins={pins}
-          onClickOnMap={handleMapClick}
-          mapAction={mapAction}
-          sidebarOpen={sidebarOpen}
-        />
-      </div>
-
-      <AddSpotModal
-        isOpen={isModalOpen}
-        onClose={() => {
-          setIsModalOpen(false);
-          setEditIndex(null);
-          setInitialPin(null);
-        }}
-        onSave={handleSavePin}
-        initialCoords={clickedLocation}
-        initialPin={initialPin}
+      <Header
+        onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
       />
+
+      {renderContent()}
+
+      {activeTab === "home" && (
+        <AddSpotModal
+          isOpen={isModalOpen}
+          onClose={() => {
+            setIsModalOpen(false);
+            setEditIndex(null);
+            setInitialPin(null);
+          }}
+          onSave={handleSavePin}
+          initialCoords={clickedLocation}
+          initialPin={initialPin}
+        />
+      )}
 
       <Footer />
     </div>

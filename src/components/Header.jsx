@@ -1,14 +1,10 @@
-import { useState } from "react";
 import "../styles/style.css";
 
-function Header({ onToggleSidebar }) {
-  const [activeTab, setActiveTab] = useState("home");
-
+function Header({ onToggleSidebar, activeTab, onTabChange }) {
   const tabs = ["home", "explore", "profile", "about"];
 
   const handleTabClick = (tab) => {
-    setActiveTab(tab);
-    console.log(`Navigated to ${tab}`);
+    onTabChange(tab);
   };
 
   return (
