@@ -1,16 +1,35 @@
-# React + Vite
+# 🗺️ Map Project
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## Overview
+This site consists of an interactive map application where users can drop pins, assign tags, and add descriptions to locations they want to remember or share. Users can view pins from friends, filter locations by category, and explore only the spots that fall within their current map view. The aim is to create a social, personalized way to discover events, places, and experiences through a shared map.
 
-Currently, two official plugins are available:
+![Demo](./src/assets/demo.gif)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
 
-## React Compiler
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### MVP’s:
+- Map Background  
+- Drop a pin  
+### Features:
+- User can see pins from other users  
+- Each user has a distinct pin for recognition  
+- User can assign a tag on a pin for filtering purposes  
+- User can add description, date and time on each pin  
 
-## Expanding the ESLint configuration
+## Tech Stack
+- **Frontend:** React, Tailwind CSS, JavaScript/TypeScript  
+- **Maps:** Leaflet / Mapbox / Google Maps API  
+- **Backend/Database:** Supabase or Firebase (for location data and user contributions)  
+- **Hosting:** Vercel or Netlify  
+- **Version Control:** Git & GitHub  
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Team
+This project is developed as part of the **CUNY Tech Prep Fellowship (2025–2026 Cohort)** by a collaborative student team across multiple CUNY campuses.  
+
+## 📑(For CISC 4900 Requirement Only) (CTP team ignore this)
+This section is for my **CISC 4900 Independent Project class**.  
+It contains my timelog and is not part of the project deliverables for the team.  
+
+👉 [View My Timelog](https://docs.google.com/spreadsheets/d/1t9WjDZbcMgz16ysqB7L7l7HQdXJRdsoC8jRkrP5u7Qs/edit?usp=sharing)
+
+👉 [View Project Slides](https://docs.google.com/presentation/d/1AUJZLIb-Grsj2MFVBZWYGsEntbMhPm0vsZgXCs-9lrI/edit?usp=sharing)
