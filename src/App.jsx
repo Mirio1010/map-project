@@ -1,5 +1,4 @@
-// src/App.jsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Header from "./components/Header";
 import Sidebar from "./components/sidebar";
 import Map from "./components/map";
@@ -21,6 +20,11 @@ function App() {
   const [initialPin, setInitialPin] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState("home");
+
+  // --- NEW STATES for Sorting/Filtering ---
+  const [sortOption, setSortOption] = useState("newest"); // "newest", "rating_high", "rating_low"
+  const [showTop10, setShowTop10] = useState(false);
+  // ----------------------------------------
 
   // 1. load Pins on startup
   useEffect(() => {
@@ -72,7 +76,7 @@ function App() {
   };
 
   const handleZoom = (lat, lng, pinIndex) => {
-    // If pinIndex is provided, open the popup too
+    // if pinIndex is provided, open the popup too
     if (pinIndex !== undefined && pinIndex !== null) {
       setMapAction({ type: "ZOOM_AND_POPUP", lat, lng, pinIndex });
     } else {
@@ -84,6 +88,32 @@ function App() {
     setMapAction({ type: "LOCATE" });
   };
 
+  // calculate Displayed Pins using useMemo ---
+  const displayedPins = useMemo(() => {
+    // create a copy so we don't mutate state directly
+    let sorted = [...pins];
+
+    // 1. Sort
+    if (sortOption === "rating_high") {
+      sorted.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+    } else if (sortOption === "rating_low") {
+      sorted.sort((a, b) => (a.rating || 0) - (b.rating || 0));
+    } else {
+      // newest first (reverse order)
+      sorted.reverse(); 
+    }
+
+    // 2. filter Top 10
+    if (showTop10) {
+      // get the actual best rated for Top 10, regardless of sort option
+      sorted.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+      return sorted.slice(0, 10);
+    }
+
+    return sorted;
+  }, [pins, sortOption, showTop10]);
+  // -------------------------------------
+
   const renderContent = () => {
     switch (activeTab) {
       case "home":
@@ -91,7 +121,10 @@ function App() {
           <div className="layout-full">
             <div className={`sidebar-wrapper ${!sidebarOpen ? "hidden" : ""}`}>
               <Sidebar
-                pins={pins}
+                //  pass displayedPins for viewing, but originalPins for ID lookup
+                pins={displayedPins} 
+                originalPins={pins} 
+                
                 onDelete={handleDeletePin}
                 onEdit={handleEdit}
                 onZoom={handleZoom}
@@ -102,11 +135,17 @@ function App() {
                   setIsModalOpen(true);
                 }}
                 onLocate={handleLocate}
+                
+                // Pass new states
+                sortOption={sortOption}
+                setSortOption={setSortOption}
+                showTop10={showTop10}
+                setShowTop10={setShowTop10}
               />
             </div>
 
             <Map
-              pins={pins}
+              pins={displayedPins} // Map also shows filtered pins
               onClickOnMap={handleMapClick}
               mapAction={mapAction}
               sidebarOpen={sidebarOpen}
@@ -120,32 +159,7 @@ function App() {
       case "about":
         return <About />;
       default:
-        return (
-          <div className="layout-full">
-            <div className={`sidebar-wrapper ${!sidebarOpen ? "hidden" : ""}`}>
-              <Sidebar
-                pins={pins}
-                onDelete={handleDeletePin}
-                onEdit={handleEdit}
-                onZoom={handleZoom}
-                onAddSpot={() => {
-                  setClickedLocation(null);
-                  setInitialPin(null);
-                  setEditIndex(null);
-                  setIsModalOpen(true);
-                }}
-                onLocate={handleLocate}
-              />
-            </div>
-
-            <Map
-              pins={pins}
-              onClickOnMap={handleMapClick}
-              mapAction={mapAction}
-              sidebarOpen={sidebarOpen}
-            />
-          </div>
-        );
+        return null; 
     }
   };
 

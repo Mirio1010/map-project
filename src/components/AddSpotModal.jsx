@@ -17,6 +17,8 @@ function AddSpotModal({ isOpen, onClose, onSave, initialCoords, initialPin }) {
   const abortControllerRef = useRef(null);
   const cacheRef = useRef(new Map());
   const debounceTimerRef = useRef(null);
+  //rating (Default to 5)
+  const [rating, setRating] = useState(5);
 
   useEffect(() => {
     // If we're editing an existing pin, prefill fields from initialPin
@@ -27,6 +29,8 @@ function AddSpotModal({ isOpen, onClose, onSave, initialCoords, initialPin }) {
       setImages(initialPin.images || []);
       setCoords({ lat: initialPin.lat, lng: initialPin.lng });
       setCategory(initialPin.category || "food-drinks");
+      //load existing rating
+      setRating(initialPin.rating || 5);
       return;
     }
 
@@ -39,8 +43,9 @@ function AddSpotModal({ isOpen, onClose, onSave, initialCoords, initialPin }) {
     } else {
       setCoords(null);
       setAddress("");
+      setRating(5);
     }
-  }, [initialCoords]);
+  }, [initialCoords, initialPin, isOpen]);
 
   // when initialPin changes (e.g. open editor), prefill
   useEffect(() => {
@@ -153,6 +158,7 @@ function AddSpotModal({ isOpen, onClose, onSave, initialCoords, initialPin }) {
       images: images,
       category: category,
       createdAt: new Date().toISOString(),
+      rating:parseInt(rating),
     };
 
     onSave(newPin);
@@ -163,6 +169,7 @@ function AddSpotModal({ isOpen, onClose, onSave, initialCoords, initialPin }) {
     setImages([]);
     setCategory("food-drinks");
     setStatus("");
+    setRating(5);
   };
 
   return (
@@ -210,6 +217,28 @@ function AddSpotModal({ isOpen, onClose, onSave, initialCoords, initialPin }) {
         </div>
 
         <form onSubmit={handleSubmit} style={{ display: "grid", gap: "10px" }}>
+          {/* rating selector//////////////////////////////////////////////////////////////////////////// */}
+
+
+          <label style={{ fontSize: "12px", color: "#666" }}>Rating</label>
+          <div style={{ display: "flex", gap: "5px" }}>
+            {[1, 2, 3, 4, 5].map((star) => (
+              <span
+                key={star}
+                onClick={() => setRating(star)}
+                style={{
+                  fontSize: "20px",
+                  color: star <= rating ? "#FFD700" : "#e5e7eb",
+                  cursor: "pointer",
+                  transition: "color 0.2s",
+                }}
+              >
+                ★
+              </span>
+            ))}
+          </div>
+          
+        {/* rating selector//////////////////////////////////////////////////////////////////////////// */}
           <label style={{ fontSize: "12px", color: "#666" }}>
             Place name (optional)
           </label>
@@ -224,6 +253,7 @@ function AddSpotModal({ isOpen, onClose, onSave, initialCoords, initialPin }) {
             }}
             placeholder="e.g. Joe's Coffee"
           />
+          
 
           <label style={{ fontSize: "12px", color: "#666" }}>
             Address / Location
