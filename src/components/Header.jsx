@@ -56,7 +56,7 @@ function Header({ onToggleSidebar, activeTab, onTabChange }) {
           href="#"
           style={{ display: "flex", alignItems: "center", gap: "10px" }}
         >
-          Spoty <span style={{ fontSize: "18px" }}>🗺️</span>
+          Spoty <span style={{ fontSize: "28px" }}>🗺️</span>
         </a>
         <ul className="tabs" role="tablist">
           {tabs.map((tab) => (
