@@ -145,11 +145,39 @@ function AddSpotModal({ isOpen, onClose, onSave, initialCoords, initialPin }) {
     setImages(results);
   };
 
+  // const handleSubmit = (e) => {
+  //   e.preventDefault();
+
+  //   // create new pin object to save
+  //   const newPin = {
+  //     name: name || "Untitled Spot",
+  //     address: address,
+  //     description: desc,
+  //     lat: coords ? coords.lat : 0,
+  //     lng: coords ? coords.lng : 0,
+  //     images: images,
+  //     category: category,
+  //     createdAt: new Date().toISOString(),
+  //     rating:parseInt(rating),
+  //   };
+
+  //   onSave(newPin);
+  //   // reset form fields
+  //   setName("");
+  //   setAddress("");
+  //   setDesc("");
+  //   setImages([]);
+  //   setCategory("food-drinks");
+  //   setStatus("");
+  //   setRating(5);
+  // };
+
   const handleSubmit = (e) => {
     e.preventDefault();
 
     // create new pin object to save
     const newPin = {
+      ...(initialPin || {}), // ← IMPORTANT: keeps id, user_id, createdAt when editing
       name: name || "Untitled Spot",
       address: address,
       description: desc,
@@ -157,9 +185,10 @@ function AddSpotModal({ isOpen, onClose, onSave, initialCoords, initialPin }) {
       lng: coords ? coords.lng : 0,
       images: images,
       category: category,
-      createdAt: new Date().toISOString(),
-      rating:parseInt(rating),
+      createdAt: initialPin?.createdAt || new Date().toISOString(),
+      rating: parseInt(rating, 10),
     };
+
 
     onSave(newPin);
     // reset form fields
@@ -171,6 +200,10 @@ function AddSpotModal({ isOpen, onClose, onSave, initialCoords, initialPin }) {
     setStatus("");
     setRating(5);
   };
+
+
+
+
 
   return (
     <div

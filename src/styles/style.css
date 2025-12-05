@@ -273,3 +273,17 @@ body {
     flex-wrap: wrap;
   }
 }
+
+.logout-btn {
+  background: #e53e3e;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.logout-btn:hover {
+  background: #c53030;
+}
