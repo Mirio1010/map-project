@@ -320,7 +320,11 @@ const handleSavePin = async (newPin) => {
           </div>
         );
       case "explore":
-        return <Explore />;
+        return (
+          <div className="explore-page-wrapper">
+            <Explore pins={pins} />
+          </div>
+        );
       case "profile":
         return <Profile />;
       case "about":

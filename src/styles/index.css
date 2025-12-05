@@ -17,6 +17,8 @@ body,
   height: 100%;
   width: 100%;
   background-color: white;
+  /* Only allow scrolling on the container itself, not on body/html */
+  overflow: hidden;
 }
 
 /* 3. CONTENT LAYOUT */
