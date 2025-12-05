@@ -7,6 +7,8 @@ import Footer from "./components/Footer";
 import Explore from "./components/Explore";
 import Profile from "./components/Profile";
 import About from "./components/About";
+import { supabase } from "./utils/supabaseClient";
+
 
 import "./styles/style.css";
 import "./styles/cards.css";
@@ -27,39 +29,204 @@ function App() {
   // ----------------------------------------
 
   // 1. load Pins on startup
+  // useEffect(() => {
+  //   try {
+  //     const saved = JSON.parse(localStorage.getItem("spotPins")) || [];
+  //     setPins(saved);
+  //   } catch (e) {
+  //     console.error("Could not load pins", e);
+  //   }
+  // }, []);
+
   useEffect(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem("spotPins")) || [];
-      setPins(saved);
-    } catch (e) {
-      console.error("Could not load pins", e);
-    }
+    const loadPins = async () => {
+      try {
+        const {
+          data: { user },
+          error: userError,
+        } = await supabase.auth.getUser();
+
+        if (userError) {
+          console.error("Error getting user:", userError.message);
+          setPins([]);
+          return;
+        }
+
+        if (!user) {
+          // not logged in – no pins
+          setPins([]);
+          return;
+        }
+
+        const { data, error } = await supabase
+          .from("locations")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false });
+
+        if (error) {
+          console.error("Error loading pins:", error.message);
+          setPins([]);
+          return;
+        }
+
+        setPins(data || []);
+      } catch (err) {
+        console.error("Unexpected error loading pins:", err);
+        setPins([]);
+      }
+    };
+
+    loadPins();
   }, []);
 
+
   // 2. save Pins (create or update)
-  const handleSavePin = (newPin) => {
-    if (editIndex !== null && editIndex >= 0 && editIndex < pins.length) {
-      const updatedPins = pins.map((p, i) => (i === editIndex ? newPin : p));
-      setPins(updatedPins);
-      localStorage.setItem("spotPins", JSON.stringify(updatedPins));
-    } else {
-      const updatedPins = [...pins, newPin];
-      setPins(updatedPins);
-      localStorage.setItem("spotPins", JSON.stringify(updatedPins));
+  // const handleSavePin = (newPin) => {
+  //   if (editIndex !== null && editIndex >= 0 && editIndex < pins.length) {
+  //     const updatedPins = pins.map((p, i) => (i === editIndex ? newPin : p));
+  //     setPins(updatedPins);
+  //     localStorage.setItem("spotPins", JSON.stringify(updatedPins));
+  //   } else {
+  //     const updatedPins = [...pins, newPin];
+  //     setPins(updatedPins);
+  //     localStorage.setItem("spotPins", JSON.stringify(updatedPins));
+  //   }
+  //   // reset edit state and close modal
+  //   setEditIndex(null);
+  //   setInitialPin(null);
+  //   setIsModalOpen(false);
+  // };
+
+  // // 3. delete Pin
+  // const handleDeletePin = (index) => {
+  //   if (!confirm("Are you sure you want to delete this spot?")) return;
+  //   const updatedPins = pins.filter((_, i) => i !== index);
+  //   setPins(updatedPins);
+  //   localStorage.setItem("spotPins", JSON.stringify(updatedPins));
+  // };
+
+
+  const handleDeletePin = async (index) => {
+    if (!confirm("Are you sure you want to delete this spot?")) return;
+
+    const pin = pins[index];
+    if (!pin || !pin.id) {
+      console.error("Cannot delete pin — missing id");
+      return;
     }
-    // reset edit state and close modal
+
+    try {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError || !user) {
+        console.error("Cannot delete pin — not authenticated");
+        return;
+      }
+
+      const { error } = await supabase
+        .from("locations")
+        .delete()
+        .eq("id", pin.id)
+        .eq("user_id", user.id);
+
+      if (error) {
+        console.error("Error deleting pin:", error.message);
+        return;
+      }
+
+      // remove from state
+      const updated = pins.filter((_, i) => i !== index);
+      setPins(updated);
+    } catch (err) {
+      console.error("Unexpected error deleting pin:", err);
+    }
+  };
+
+
+const handleSavePin = async (newPin) => {
+  try {
+    // 1. Get the authenticated user
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      console.error("Cannot save pin — no authenticated user.");
+      return;
+    }
+
+    // 2. EDITING an existing pin → UPDATE
+    if (newPin.id) {
+      const { error } = await supabase
+        .from("locations")
+        .update({
+          name: newPin.name,
+          address: newPin.address,
+          description: newPin.description,
+          category: newPin.category,
+          images: newPin.images,
+          lat: newPin.lat,
+          lng: newPin.lng,
+          rating: newPin.rating,
+        })
+        .eq("id", newPin.id)
+        .eq("user_id", user.id);
+
+      if (error) {
+        console.error("Error updating pin:", error.message);
+        return;
+      }
+
+      // Update React state so UI reflects the edit
+      const updatedPins = pins.map((p, i) =>
+        i === editIndex ? { ...p, ...newPin } : p
+      );
+
+      setPins(updatedPins);
+    }
+
+    // 3. CREATING a NEW pin → INSERT
+    else {
+      const { data: insertedPin, error } = await supabase
+        .from("locations")
+        .insert({
+          user_id: user.id,
+          name: newPin.name,
+          address: newPin.address,
+          description: newPin.description,
+          category: newPin.category,
+          images: newPin.images,
+          lat: newPin.lat,
+          lng: newPin.lng,
+          rating: newPin.rating,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Error inserting new pin:", error.message);
+        return;
+      }
+
+      // Add newly created pin (with id) to UI
+      setPins([...pins, insertedPin]);
+    }
+
+    // 4. Reset modal state
     setEditIndex(null);
     setInitialPin(null);
     setIsModalOpen(false);
-  };
+  } catch (err) {
+    console.error("Unexpected error saving pin:", err);
+  }
+};
 
-  // 3. delete Pin
-  const handleDeletePin = (index) => {
-    if (!confirm("Are you sure you want to delete this spot?")) return;
-    const updatedPins = pins.filter((_, i) => i !== index);
-    setPins(updatedPins);
-    localStorage.setItem("spotPins", JSON.stringify(updatedPins));
-  };
+
 
   // 4. interaction Handlers
   const handleMapClick = (latlng) => {
