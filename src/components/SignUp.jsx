@@ -22,6 +22,7 @@ export default function SignUp() {
         await supabase.from("profiles").insert({
           id: data.user.id,
           username: email.split("@")[0], // default username = prefix of email
+          email: email, // Store email for friend lookup functionality
         });
       }
 
