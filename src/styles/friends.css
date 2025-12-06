@@ -1,0 +1,205 @@
+/* ============================================
+   Friends Section Styles - Modal Overlay
+   ============================================ */
+
+/* Backdrop that covers the entire page */
+.friends-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 9998;
+  animation: fadeIn 0.2s ease-out;
+}
+
+/* Modal container - centered on screen */
+.friends-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  z-index: 9999;
+  width: 90%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -48%);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+}
+
+/* Modal header */
+.friends-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.friends-modal-header h3 {
+  color: var(--muted);
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.friends-modal-close {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  line-height: 1;
+}
+
+.friends-modal-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: scale(1.1);
+}
+
+/* Modal content */
+.friends-modal-content {
+  padding: 1.5rem;
+}
+
+.friends-section h3 {
+  color: var(--muted);
+  margin: 0 0 0.5rem 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+}
+
+.friends-description {
+  color: var(--muted);
+  opacity: 0.8;
+  margin: 0 0 1.5rem 0;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  text-align: center;
+}
+
+/* Add Friend Form */
+.add-friend-form {
+  margin-bottom: 0;
+}
+
+.add-friend-input-group {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.add-friend-input {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  background: var(--bg);
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 1rem;
+}
+
+.add-friend-input:focus {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+.add-friend-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.add-friend-button {
+  padding: 0.75rem 1.5rem;
+  background: var(--brand);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.add-friend-button:hover:not(:disabled) {
+  background: #1ab8b8;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.add-friend-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Friend Messages */
+.friend-message {
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  font-size: 0.9375rem;
+  margin-top: 0.5rem;
+}
+
+.friend-error {
+  background: rgba(229, 62, 62, 0.1);
+  color: #e53e3e;
+  border: 1px solid rgba(229, 62, 62, 0.3);
+}
+
+.friend-success {
+  background: rgba(34, 197, 94, 0.1);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .friends-modal {
+    width: 95%;
+    max-height: 85vh;
+  }
+
+  .friends-modal-header,
+  .friends-modal-content {
+    padding: 1.25rem;
+  }
+
+  .add-friend-input-group {
+    flex-direction: column;
+  }
+
+  .add-friend-button {
+    width: 100%;
+  }
+}
+

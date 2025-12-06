@@ -1,0 +1,316 @@
+/* ============================================
+   Profile Page Styles
+   ============================================ */
+
+/* Wrapper for the Profile page that enables scrolling */
+.profile-page-wrapper {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  /* Ensure smooth scrolling */
+  -webkit-overflow-scrolling: touch;
+  /* Classy grey background for the entire profile page */
+  background: #3a3a3a;
+}
+
+/* Main container for the Profile page */
+.profile-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  height: auto;
+  background: #3a3a3a;
+  color: var(--muted);
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  overflow-y: visible;
+  /* Add padding at bottom to prevent content from being hidden behind footer */
+  padding-bottom: 4rem;
+  flex-shrink: 0;
+}
+
+/* Profile Information Section */
+.profile-info-section {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Profile Header with Friends Button */
+.profile-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.profile-info-section h1 {
+  color: var(--muted);
+  margin: 0;
+  font-size: 2.5rem;
+  font-weight: 700;
+}
+
+/* Friends Toggle Button */
+.friends-toggle-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  background: var(--brand);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.friends-toggle-button:hover {
+  background: #1ab8b8;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.friends-icon {
+  font-size: 1.125rem;
+}
+
+.friends-arrow {
+  font-size: 0.75rem;
+  transition: transform 0.3s ease;
+  display: inline-block;
+}
+
+.friends-arrow.open {
+  transform: rotate(180deg);
+}
+
+/* Profile Picture Section */
+.profile-picture-section {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 2rem;
+}
+
+.profile-picture-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.profile-picture {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 4px solid var(--brand);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.profile-picture-placeholder {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  background: var(--bg);
+  border: 4px solid var(--brand);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 4rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.profile-picture-upload-label {
+  padding: 0.75rem 1.5rem;
+  background: var(--brand);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.profile-picture-upload-label:hover {
+  background: #1ab8b8;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.profile-picture-upload-label:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Profile Details */
+.profile-details {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.profile-detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.profile-detail-item label {
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 0.9375rem;
+  opacity: 0.8;
+}
+
+.profile-detail-item p {
+  color: var(--muted);
+  font-size: 1.125rem;
+  margin: 0;
+}
+
+/* Username Display and Edit */
+.username-display {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.username-edit {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.username-input {
+  padding: 0.5rem 0.75rem;
+  background: var(--bg);
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 1rem;
+  flex: 1;
+  min-width: 200px;
+}
+
+.username-input:focus {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+.edit-username-button,
+.save-username-button,
+.cancel-username-button {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.edit-username-button {
+  background: transparent;
+  color: var(--brand);
+  border: 1px solid var(--brand);
+}
+
+.edit-username-button:hover {
+  background: rgba(31, 206, 206, 0.1);
+}
+
+.save-username-button {
+  background: var(--brand);
+  color: white;
+}
+
+.save-username-button:hover {
+  background: #1ab8b8;
+}
+
+.cancel-username-button {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
+
+.cancel-username-button:hover {
+  background: var(--bg);
+}
+
+/* My Places Section */
+.my-places-section {
+  margin-top: 2rem;
+}
+
+.my-places-section h2 {
+  color: var(--muted);
+  margin: 0 0 0.5rem 0;
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .profile-container {
+    padding: 1rem;
+  }
+
+  .profile-info-section {
+    padding: 1.5rem;
+  }
+
+  .profile-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .friends-toggle-button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .profile-info-section h1 {
+    font-size: 2rem;
+  }
+
+  .profile-picture,
+  .profile-picture-placeholder {
+    width: 120px;
+    height: 120px;
+  }
+
+  .username-edit {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .username-input {
+    min-width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .profile-info-section h1 {
+    font-size: 1.75rem;
+  }
+
+  .profile-picture,
+  .profile-picture-placeholder {
+    width: 100px;
+    height: 100px;
+  }
+}
+
