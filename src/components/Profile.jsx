@@ -153,7 +153,7 @@ function Profile() {
       // Upload to Supabase storage (assuming you have a 'avatars' bucket)
       // Note: You'll need to create this bucket in Supabase Storage
       const { error: uploadError } = await supabase.storage
-        .from("avatars")
+        .from("profile_pictures")
         .upload(filePath, file, {
           cacheControl: "3600",
           upsert: true,
@@ -169,7 +169,7 @@ function Profile() {
       // Get public URL
       const {
         data: { publicUrl },
-      } = supabase.storage.from("avatars").getPublicUrl(filePath);
+      } = supabase.storage.from("profile_pictures").getPublicUrl(filePath);
 
       // Update profile with new picture URL
       const { error: updateError } = await supabase

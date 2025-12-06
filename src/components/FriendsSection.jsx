@@ -38,6 +38,9 @@ function FriendsSection({ currentUserId, onFriendsChange, onClose }) {
       }
 
       const friendIds = (friendsData || []).map((item) => item.friend_id);
+      
+
+
 
       // Notify parent component of friends change
       if (onFriendsChange) {

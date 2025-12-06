@@ -30,10 +30,17 @@ function Explore() {
   const [userLocation, setUserLocation] = useState(null);
   const [locationError, setLocationError] = useState(null);
 
+
+
+
   /**
    * Load current user ID and friends list on component mount
+   * 
    */
   useEffect(() => {
+
+
+
     const loadUserAndFriends = async () => {
       try {
         // Get current authenticated user
@@ -63,6 +70,9 @@ function Explore() {
           .select("friend_id")
           .eq("user_id", user.id);
 
+     
+
+
         if (friendsError) {
           console.error("Error loading friends:", friendsError.message);
           setFriendIds([]);
@@ -71,6 +81,8 @@ function Explore() {
 
         const friendIdsList = (friendsData || []).map((f) => f.friend_id);
         setFriendIds(friendIdsList);
+       
+
       } catch (err) {
         console.error("Unexpected error loading user and friends:", err);
         setFriendIds([]);
