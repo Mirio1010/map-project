@@ -328,7 +328,11 @@ const handleSavePin = async (newPin) => {
       case "profile":
         return <Profile />;
       case "about":
-        return <About />;
+        return (
+          <div className="about-page-wrapper">
+            <About />
+          </div>
+        );
       default:
         return null; 
     }
