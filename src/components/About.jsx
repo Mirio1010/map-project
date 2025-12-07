@@ -21,9 +21,9 @@ function About() {
                 <ul>
                     <li><strong>Interactive Pin Dropping:</strong> Drop pins on any location you want to remember or share</li>
                     <li><strong>Category Organization:</strong> Assign tags and categories to organize your spots (Food & Drinks, Nightlife, Events, Activities, Shopping, etc.)</li>
-                    <li><strong>Rich Descriptions:</strong> Add detailed descriptions, images, and ratings to each location</li>
+                    <li><strong>Descriptions:</strong> Add detailed descriptions, images, and ratings to each location</li>
                     <li><strong>Social Sharing:</strong> View pins from friends and discover new places through their recommendations</li>
-                    <li><strong>Smart Filtering:</strong> Filter locations by category, rating, or view only spots within your current map area</li>
+                    <li><strong>Filtering:</strong> Filter locations by category, rating, or view only spots within your current map area</li>
                     <li><strong>Rating System:</strong> Rate and review locations to help others discover the best spots</li>
                     <li><strong>Personal Collections:</strong> Build your own personalized map of favorite places</li>
                 </ul>
@@ -66,14 +66,14 @@ function About() {
             <section>
                 <h2>Technology stack</h2>
                 <p>
-                    Spoty is built with modern web technologies to provide a fast, responsive,
-                    and reliable experience:
+                    Spoty is built with these web technologies to provide a fast, responsive, and reliable experience:
                 </p>
                 <ul>
-                    <li><strong>Frontend:</strong> React, JavaScript/TypeScript</li>
-                    <li><strong>Maps:</strong> Leaflet / Mapbox / Google Maps API</li>
+                    <li><strong>Frontend:</strong> React, JavaScript</li>
+                    <li><strong>Maps:</strong> Leaflet</li>
                     <li><strong>Backend & Database:</strong> Supabase (for location data and user contributions)</li>
-                    <li><strong>Styling:</strong> Custom CSS with modern design principles</li>
+                    <li><strong>Styling:</strong> Custom CSS </li>
+                    <li><strong>Build System:</strong> Vite (for fast development server and production builds)</li>
                 </ul>
             </section>
 
@@ -81,7 +81,7 @@ function About() {
                 <h2>Team & credits</h2>
                 <p>
                     This project is developed as part of the <strong>CUNY Tech Prep Fellowship
-                        (2025–2026 Cohort)</strong> by a collaborative student team across multiple
+                        (2025–2026 11th Cohort)</strong> by a collaborative student team across multiple
                     CUNY campuses. We're passionate about creating tools that bring people
                     together and make exploration easier.
                 </p>
