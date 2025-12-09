@@ -217,6 +217,22 @@ body {
 .leaflet-marker-icon.friend-marker {
   z-index: 1001 !important;
   animation: friendPulse 2s ease-in-out infinite;
+  overflow: visible !important;
+}
+
+/* Colored pin icon - ensure glow is visible */
+.colored-pin-icon {
+  overflow: visible !important;
+  background: transparent !important;
+}
+
+.colored-pin-wrapper {
+  overflow: visible !important;
+}
+
+.colored-pin-image {
+  filter: drop-shadow(0 0 6px var(--pin-color, #1fcece)) drop-shadow(0 0 3px var(--pin-color, #1fcece)) !important;
+  -webkit-filter: drop-shadow(0 0 6px var(--pin-color, #1fcece)) drop-shadow(0 0 3px var(--pin-color, #1fcece)) !important;
 }
 
 @keyframes friendPulse {

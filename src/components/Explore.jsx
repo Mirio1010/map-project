@@ -17,6 +17,8 @@ function Explore() {
   const [currentUserId, setCurrentUserId] = useState(null);
   const [friendIds, setFriendIds] = useState([]);
   const [friendProfiles, setFriendProfiles] = useState([]); // Store friend profiles with usernames
+  const [friendUsernames, setFriendUsernames] = useState({}); // Map of user_id to username
+  const [friendColors, setFriendColors] = useState({}); // Map of user_id to color
   
   // State for filter modal visibility
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -100,9 +102,43 @@ function Explore() {
           
           if (!profilesError && profilesData) {
             setFriendProfiles(profilesData);
+            
+            // Create username map
+            const usernameMap = {};
+            profilesData.forEach((profile) => {
+              usernameMap[profile.id] = profile.username || profile.email || "Unknown";
+            });
+            setFriendUsernames(usernameMap);
+            
+            // Generate consistent colors for friends - same palette as App.jsx
+            const palette = [
+              "#ff6b6b",  // Red
+              "#ffd166",  // Yellow
+              "#06d6a0",  // Green
+              "#118ab2",  // Blue
+              "#9b6bff",  // Purple
+              "#ef476f",  // Pink
+              "#33b5e5",  // Light Blue
+              "#f78c6b",  // Orange
+              "#c792ea",  // Lavender
+              "#8dd3c7",  // Mint
+              "#ff9f43",  // Orange Red
+              "#5f27cd",  // Deep Purple
+              "#00d2d3",  // Cyan
+              "#ff6348",  // Coral
+              "#a55eea",  // Violet
+            ];
+            
+            const colorMap = {};
+            profilesData.forEach((profile, index) => {
+              colorMap[profile.id] = palette[index % palette.length];
+            });
+            setFriendColors(colorMap);
           }
         } else {
           setFriendProfiles([]);
+          setFriendUsernames({});
+          setFriendColors({});
         }
        
 
@@ -377,6 +413,38 @@ function Explore() {
           
           if (profilesData) {
             setFriendProfiles(profilesData);
+            
+            // Update username map
+            const usernameMap = {};
+            profilesData.forEach((profile) => {
+              usernameMap[profile.id] = profile.username || profile.email || "Unknown";
+            });
+            setFriendUsernames(usernameMap);
+            
+            // Update color map - same palette as App.jsx
+            const palette = [
+              "#ff6b6b",  // Red
+              "#ffd166",  // Yellow
+              "#06d6a0",  // Green
+              "#118ab2",  // Blue
+              "#9b6bff",  // Purple
+              "#ef476f",  // Pink
+              "#33b5e5",  // Light Blue
+              "#f78c6b",  // Orange
+              "#c792ea",  // Lavender
+              "#8dd3c7",  // Mint
+              "#ff9f43",  // Orange Red
+              "#5f27cd",  // Deep Purple
+              "#00d2d3",  // Cyan
+              "#ff6348",  // Coral
+              "#a55eea",  // Violet
+            ];
+            
+            const colorMap = {};
+            profilesData.forEach((profile, index) => {
+              colorMap[profile.id] = palette[index % palette.length];
+            });
+            setFriendColors(colorMap);
           }
         }
       }
@@ -801,6 +869,25 @@ function Explore() {
                     {/* Rating display */}
                     {renderStars(place.rating)}
                   </div>
+                  
+                  {/* Friend badge - shows who shared the spot */}
+                  {place.user_id && friendUsernames[place.user_id] && (
+                    <div style={{ 
+                      marginTop: "4px",
+                      marginBottom: "4px",
+                      display: "inline-block",
+                      width: "fit-content",
+                      padding: "2px 6px",
+                      background: `${friendColors[place.user_id] || "var(--brand)"}20`,
+                      borderRadius: "4px",
+                      fontSize: "11px",
+                      color: friendColors[place.user_id] || "var(--brand)",
+                      fontWeight: "600",
+                      border: `1px solid ${friendColors[place.user_id] || "var(--brand)"}40`
+                    }}>
+                      👥 {friendUsernames[place.user_id]}
+                    </div>
+                  )}
 
                   {/* Address */}
                   {place.address && (
