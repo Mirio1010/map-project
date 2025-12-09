@@ -484,6 +484,7 @@
   color: var(--muted);
   flex-shrink: 0;
   white-space: nowrap;
+  width: fit-content;
 }
 .place-card-address-text {
   color: var(--brand) !important;
