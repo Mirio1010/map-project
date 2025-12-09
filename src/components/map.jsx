@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { createPinIcon, createDefaultPinIcon, categoryPinMap, defaultPinUrl } from "../utils/pinCategories";
+import { createPinIcon, createDefaultPinIcon, createColoredPinIcon, categoryPinMap, defaultPinUrl } from "../utils/pinCategories";
 
 const defaultPin = createDefaultPinIcon();
 
@@ -199,8 +199,10 @@ function Map({ pins, friendsPins = [], friendUsernames = {}, friendColors = {}, 
           const friendName = friendUsernames[pin.user_id] || "Friend";
           const friendColor = friendColors[pin.user_id] || "#1fcece";
           
-          // Use original category-based pin icon
-          const friendPinIcon = pin.category ? createPinIcon(pin.category) : defaultPin;
+          // Use colored pin icon that matches the friend's color
+          const friendPinIcon = pin.category 
+            ? createColoredPinIcon(pin.category, friendColor)
+            : createColoredPinIcon(null, friendColor);
           
           return (
             <Marker 
@@ -209,14 +211,11 @@ function Map({ pins, friendsPins = [], friendUsernames = {}, friendColors = {}, 
               icon={friendPinIcon}
               eventHandlers={{
                 add: (e) => {
-                  // Add custom class and intense colored glow to marker element
+                  // Add custom class for friend marker
                   const markerElement = e.target.getElement();
                   if (markerElement) {
                     markerElement.classList.add('friend-marker');
-                    // Set the friend color as a CSS variable for the glow effect
                     markerElement.style.setProperty('--friend-color', friendColor);
-                    // Set glow with friend's color (slightly reduced intensity)
-                    markerElement.style.filter = `drop-shadow(0 0 12px ${friendColor}) drop-shadow(0 0 6px ${friendColor}) brightness(1.1)`;
                     markerElement.style.zIndex = '1001';
                   }
                 }
