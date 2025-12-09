@@ -412,10 +412,21 @@
 /* Place card address */
 .place-card-address {
   margin: 0.5rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   color: var(--muted);
-  opacity: 0.8;
-  font-size: 0.875rem;
-  line-height: 1.5;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.place-card-address-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  color: var(--muted);
+  opacity: 0.9;
 }
 
 /* Place card distance */
@@ -429,6 +440,12 @@
 /* Place card description */
 .place-card-description {
   margin: 0.75rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.place-card-description-text {
   color: var(--muted);
   opacity: 0.9;
   font-size: 0.9375rem;
@@ -438,6 +455,44 @@
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+.place-card-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(31, 206, 206, 0.12);
+  color: var(--brand);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+}
+
+.place-card-chip.neutral {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--muted);
+}
+.place-card-chip.address-chip {
+  background: rgba(31, 206, 206, 0.15);
+  color: var(--brand);
+  border: 1px solid rgba(31, 206, 206, 0.3);
+}
+.place-card-chip.description-chip {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--muted);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.place-card-address-text {
+  color: var(--brand) !important;
+  font-weight: 500 !important;
+  font-size: 0.875rem !important;
+}
+.place-card-description-text {
+  color: var(--muted) !important;
+  font-weight: 400 !important;
 }
 
 /* Place card footer */

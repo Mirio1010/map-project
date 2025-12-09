@@ -19,6 +19,12 @@ function AddSpotModal({ isOpen, onClose, onSave, initialCoords, initialPin }) {
   const debounceTimerRef = useRef(null);
   //rating (Default to 5)
   const [rating, setRating] = useState(5);
+  // Temporary pin expiration
+  const [isTemporary, setIsTemporary] = useState(false);
+  const [expirationType, setExpirationType] = useState("hours"); // "hours", "days", "datetime"
+  const [expirationHours, setExpirationHours] = useState(24);
+  const [expirationDays, setExpirationDays] = useState(1);
+  const [expirationDateTime, setExpirationDateTime] = useState("");
 
   useEffect(() => {
     // If we're editing an existing pin, prefill fields from initialPin
@@ -31,6 +37,27 @@ function AddSpotModal({ isOpen, onClose, onSave, initialCoords, initialPin }) {
       setCategory(initialPin.category || "food-drinks");
       //load existing rating
       setRating(initialPin.rating || 5);
+      // Load expiration settings
+      setIsTemporary(!!initialPin.expires_at);
+      if (initialPin.expires_at) {
+        const expiresAt = new Date(initialPin.expires_at);
+        const now = new Date();
+        const hoursUntilExpiry = Math.ceil((expiresAt - now) / (1000 * 60 * 60));
+        const daysUntilExpiry = Math.ceil((expiresAt - now) / (1000 * 60 * 60 * 24));
+        
+        if (daysUntilExpiry >= 1) {
+          setExpirationType("days");
+          setExpirationDays(Math.max(1, daysUntilExpiry));
+        } else {
+          setExpirationType("hours");
+          setExpirationHours(Math.max(1, hoursUntilExpiry));
+        }
+        // Set datetime for datetime picker
+        const localDateTime = new Date(expiresAt.getTime() - expiresAt.getTimezoneOffset() * 60000)
+          .toISOString()
+          .slice(0, 16);
+        setExpirationDateTime(localDateTime);
+      }
       return;
     }
 
@@ -44,6 +71,11 @@ function AddSpotModal({ isOpen, onClose, onSave, initialCoords, initialPin }) {
       setCoords(null);
       setAddress("");
       setRating(5);
+      setIsTemporary(false);
+      setExpirationType("hours");
+      setExpirationHours(24);
+      setExpirationDays(1);
+      setExpirationDateTime("");
     }
   }, [initialCoords, initialPin, isOpen]);
 
@@ -60,6 +92,11 @@ function AddSpotModal({ isOpen, onClose, onSave, initialCoords, initialPin }) {
     } else {
       // Reset category when opening new pin modal
       setCategory("food-drinks");
+      setIsTemporary(false);
+      setExpirationType("hours");
+      setExpirationHours(24);
+      setExpirationDays(1);
+      setExpirationDateTime("");
     }
   }, [initialPin, isOpen]);
 
@@ -175,6 +212,25 @@ function AddSpotModal({ isOpen, onClose, onSave, initialCoords, initialPin }) {
   const handleSubmit = (e) => {
     e.preventDefault();
 
+    // Calculate expiration time if temporary
+    let expiresAt = null;
+    if (isTemporary) {
+      const expirationDate = new Date();
+      
+      if (expirationType === "datetime" && expirationDateTime) {
+        // Use specific date/time
+        expiresAt = new Date(expirationDateTime).toISOString();
+      } else if (expirationType === "days" && expirationDays > 0) {
+        // Add days
+        expirationDate.setDate(expirationDate.getDate() + expirationDays);
+        expiresAt = expirationDate.toISOString();
+      } else if (expirationType === "hours" && expirationHours > 0) {
+        // Add hours
+        expirationDate.setHours(expirationDate.getHours() + expirationHours);
+        expiresAt = expirationDate.toISOString();
+      }
+    }
+
     // create new pin object to save
     const newPin = {
       ...(initialPin || {}), // ← IMPORTANT: keeps id, user_id, createdAt when editing
@@ -187,6 +243,7 @@ function AddSpotModal({ isOpen, onClose, onSave, initialCoords, initialPin }) {
       category: category,
       createdAt: initialPin?.createdAt || new Date().toISOString(),
       rating: parseInt(rating, 10),
+      expires_at: expiresAt,
     };
 
 
@@ -199,6 +256,11 @@ function AddSpotModal({ isOpen, onClose, onSave, initialCoords, initialPin }) {
     setCategory("food-drinks");
     setStatus("");
     setRating(5);
+    setIsTemporary(false);
+    setExpirationType("hours");
+    setExpirationHours(24);
+    setExpirationDays(1);
+    setExpirationDateTime("");
   };
 
 
@@ -377,6 +439,148 @@ function AddSpotModal({ isOpen, onClose, onSave, initialCoords, initialPin }) {
               </option>
             ))}
           </select>
+
+          {/* Temporary Pin Option */}
+          <div style={{ 
+            padding: "12px", 
+            background: "#f9fafb", 
+            borderRadius: "6px",
+            border: "1px solid #e5e7eb"
+          }}>
+            <label style={{ 
+              display: "flex", 
+              alignItems: "center", 
+              gap: "8px",
+              fontSize: "12px", 
+              color: "#666",
+              cursor: "pointer"
+            }}>
+              <input
+                type="checkbox"
+                checked={isTemporary}
+                onChange={(e) => setIsTemporary(e.target.checked)}
+                style={{ cursor: "pointer" }}
+              />
+              <span>⏰ Make this a temporary pin</span>
+            </label>
+            {isTemporary && (
+              <div style={{ marginTop: "8px" }}>
+                <label style={{ fontSize: "12px", color: "#666", display: "block", marginBottom: "4px" }}>
+                  Expiration type:
+                </label>
+                <select
+                  value={expirationType}
+                  onChange={(e) => {
+                    setExpirationType(e.target.value);
+                    // Set default datetime if switching to datetime mode
+                    if (e.target.value === "datetime" && !expirationDateTime) {
+                      const defaultDateTime = new Date();
+                      defaultDateTime.setHours(defaultDateTime.getHours() + 24);
+                      const localDateTime = new Date(defaultDateTime.getTime() - defaultDateTime.getTimezoneOffset() * 60000)
+                        .toISOString()
+                        .slice(0, 16);
+                      setExpirationDateTime(localDateTime);
+                    }
+                  }}
+                  style={{
+                    padding: "6px",
+                    border: "1px solid #ccc",
+                    borderRadius: "4px",
+                    fontSize: "14px",
+                    width: "100%",
+                    marginBottom: "8px",
+                  }}
+                >
+                  <option value="hours">Hours from now</option>
+                  <option value="days">Days from now</option>
+                  <option value="datetime">Specific date & time</option>
+                </select>
+
+                {expirationType === "hours" && (
+                  <>
+                    <label style={{ fontSize: "12px", color: "#666", display: "block", marginBottom: "4px" }}>
+                      Hours:
+                    </label>
+                    <select
+                      value={expirationHours}
+                      onChange={(e) => setExpirationHours(parseInt(e.target.value, 10))}
+                      style={{
+                        padding: "6px",
+                        border: "1px solid #ccc",
+                        borderRadius: "4px",
+                        fontSize: "14px",
+                        width: "100%",
+                      }}
+                    >
+                      <option value={1}>1 hour</option>
+                      <option value={2}>2 hours</option>
+                      <option value={3}>3 hours</option>
+                      <option value={6}>6 hours</option>
+                      <option value={12}>12 hours</option>
+                      <option value={24}>24 hours (1 day)</option>
+                      <option value={48}>48 hours (2 days)</option>
+                      <option value={72}>72 hours (3 days)</option>
+                    </select>
+                  </>
+                )}
+
+                {expirationType === "days" && (
+                  <>
+                    <label style={{ fontSize: "12px", color: "#666", display: "block", marginBottom: "4px" }}>
+                      Days:
+                    </label>
+                    <select
+                      value={expirationDays}
+                      onChange={(e) => setExpirationDays(parseInt(e.target.value, 10))}
+                      style={{
+                        padding: "6px",
+                        border: "1px solid #ccc",
+                        borderRadius: "4px",
+                        fontSize: "14px",
+                        width: "100%",
+                      }}
+                    >
+                      <option value={1}>1 day</option>
+                      <option value={2}>2 days</option>
+                      <option value={3}>3 days</option>
+                      <option value={7}>1 week</option>
+                      <option value={14}>2 weeks</option>
+                      <option value={30}>1 month</option>
+                    </select>
+                  </>
+                )}
+
+                {expirationType === "datetime" && (
+                  <>
+                    <label style={{ fontSize: "12px", color: "#666", display: "block", marginBottom: "4px" }}>
+                      Date & Time:
+                    </label>
+                    <input
+                      type="datetime-local"
+                      value={expirationDateTime || ""}
+                      onChange={(e) => setExpirationDateTime(e.target.value)}
+                      min={new Date().toISOString().slice(0, 16)}
+                      style={{
+                        padding: "6px",
+                        border: "1px solid #ccc",
+                        borderRadius: "4px",
+                        fontSize: "14px",
+                        width: "100%",
+                      }}
+                    />
+                  </>
+                )}
+
+                <p style={{ 
+                  margin: "8px 0 0 0", 
+                  fontSize: "11px", 
+                  color: "#9ca3af" 
+                }}>
+                  This pin will automatically disappear after the selected time. Friends will be able to see it until it expires.
+                </p>
+              </div>
+            )}
+          </div>
 
           <label style={{ fontSize: "12px", color: "#666" }}>Images</label>
           <input

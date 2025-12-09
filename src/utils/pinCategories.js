@@ -11,7 +11,7 @@ export const categoryPinMap = {
 };
 
 // Default pin fallback
-const defaultPinUrl = "/pics/Pin.png";
+export const defaultPinUrl = "/pics/Pin.png";
 
 // Create a pin icon for a given category
 export const createPinIcon = (category) => {

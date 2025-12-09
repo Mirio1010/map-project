@@ -16,12 +16,15 @@ function Explore() {
   const [friendsPins, setFriendsPins] = useState([]);
   const [currentUserId, setCurrentUserId] = useState(null);
   const [friendIds, setFriendIds] = useState([]);
+  const [friendProfiles, setFriendProfiles] = useState([]); // Store friend profiles with usernames
   
   // State for filter modal visibility
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isAddFriendOpen, setIsAddFriendOpen] = useState(false);
   
   // State for filter options
   const [selectedCategories, setSelectedCategories] = useState([]);
+  const [selectedFriend, setSelectedFriend] = useState(""); // Filter by specific friend
   const [minRating, setMinRating] = useState(0);
   const [maxRating, setMaxRating] = useState(5);
   const [sortBy, setSortBy] = useState("rating"); // "rating", "name", "newest", "distance"
@@ -29,6 +32,12 @@ function Explore() {
   // State for user's current location (for "near me" functionality)
   const [userLocation, setUserLocation] = useState(null);
   const [locationError, setLocationError] = useState(null);
+  
+  // State for adding friend
+  const [newFriendEmail, setNewFriendEmail] = useState("");
+  const [isAddingFriend, setIsAddingFriend] = useState(false);
+  const [addFriendError, setAddFriendError] = useState(null);
+  const [addFriendSuccess, setAddFriendSuccess] = useState(null);
 
 
 
@@ -81,6 +90,20 @@ function Explore() {
 
         const friendIdsList = (friendsData || []).map((f) => f.friend_id);
         setFriendIds(friendIdsList);
+        
+        // Load friend profiles for filtering
+        if (friendIdsList.length > 0) {
+          const { data: profilesData, error: profilesError } = await supabase
+            .from("profiles")
+            .select("id, username, email")
+            .in("id", friendIdsList);
+          
+          if (!profilesError && profilesData) {
+            setFriendProfiles(profilesData);
+          }
+        } else {
+          setFriendProfiles([]);
+        }
        
 
       } catch (err) {
@@ -181,6 +204,11 @@ function Explore() {
     // Start with pins from friends
     let filtered = [...friendsPins];
 
+    // Apply friend filter - filter by specific friend if selected
+    if (selectedFriend) {
+      filtered = filtered.filter((pin) => pin.user_id === selectedFriend);
+    }
+
     // Apply category filter
     // If categories are selected, only show places matching those categories
     if (selectedCategories.length > 0) {
@@ -231,7 +259,7 @@ function Explore() {
     });
 
     return filtered;
-  }, [friendsPins, selectedCategories, minRating, maxRating, sortBy, userLocation]);
+  }, [friendsPins, selectedCategories, selectedFriend, minRating, maxRating, sortBy, userLocation]);
 
   /**
    * Toggle category selection in filter
@@ -251,9 +279,118 @@ function Explore() {
    */
   const resetFilters = () => {
     setSelectedCategories([]);
+    setSelectedFriend("");
     setMinRating(0);
     setMaxRating(5);
     setSortBy("rating");
+  };
+
+  /**
+   * Handle adding a new friend
+   */
+  const handleAddFriend = async (e) => {
+    e.preventDefault();
+    setAddFriendError(null);
+    setAddFriendSuccess(null);
+
+    if (!newFriendEmail.trim()) {
+      setAddFriendError("Please enter an email address");
+      return;
+    }
+
+    if (!currentUserId) {
+      setAddFriendError("You must be logged in to add friends");
+      return;
+    }
+
+    setIsAddingFriend(true);
+
+    try {
+      // Find user by email in profiles table
+      const { data: profileData, error: profileErr } = await supabase
+        .from("profiles")
+        .select("id, email, username")
+        .eq("email", newFriendEmail.trim().toLowerCase())
+        .single();
+
+      if (profileErr || !profileData) {
+        setAddFriendError("User with this email not found. Make sure the user has signed up.");
+        setIsAddingFriend(false);
+        return;
+      }
+
+      // Check if trying to add yourself
+      if (profileData.id === currentUserId) {
+        setAddFriendError("You cannot add yourself as a friend");
+        setIsAddingFriend(false);
+        return;
+      }
+
+      // Check if already friends
+      const { data: existingFriend, error: checkError } = await supabase
+        .from("friends")
+        .select("id")
+        .eq("user_id", currentUserId)
+        .eq("friend_id", profileData.id)
+        .single();
+
+      if (existingFriend) {
+        setAddFriendError("This user is already in your friends list");
+        setIsAddingFriend(false);
+        return;
+      }
+
+      // Add friend relationship
+      const { error: addError } = await supabase.from("friends").insert({
+        user_id: currentUserId,
+        friend_id: profileData.id,
+        created_at: new Date().toISOString(),
+      });
+
+      if (addError) {
+        console.error("Error adding friend:", addError.message);
+        setAddFriendError("Failed to add friend. Please try again.");
+        setIsAddingFriend(false);
+        return;
+      }
+
+      // Success - reload friends list
+      setAddFriendSuccess(`Successfully added ${profileData.username || profileData.email} as a friend!`);
+      setNewFriendEmail("");
+
+      // Reload friends list
+      const { data: friendsData } = await supabase
+        .from("friends")
+        .select("friend_id")
+        .eq("user_id", currentUserId);
+
+      if (friendsData) {
+        const friendIdsList = friendsData.map((f) => f.friend_id);
+        setFriendIds(friendIdsList);
+        
+        // Reload friend profiles
+        if (friendIdsList.length > 0) {
+          const { data: profilesData } = await supabase
+            .from("profiles")
+            .select("id, username, email")
+            .in("id", friendIdsList);
+          
+          if (profilesData) {
+            setFriendProfiles(profilesData);
+          }
+        }
+      }
+
+      // Clear success message after 3 seconds
+      setTimeout(() => {
+        setAddFriendSuccess(null);
+      }, 3000);
+    } catch (err) {
+      console.error("Unexpected error adding friend:", err);
+      setAddFriendError("An unexpected error occurred. Please try again.");
+    } finally {
+      setIsAddingFriend(false);
+    }
   };
 
   /**
@@ -315,6 +452,48 @@ function Explore() {
     return `${distance.toFixed(1)}km away`;
   };
 
+  /**
+   * Make addresses shorter and more scannable while keeping the full value in a tooltip.
+   * Prioritizes street address and city, removes redundant parts.
+   */
+  const formatAddress = (address) => {
+    if (!address) return "";
+    const parts = address.split(",").map((p) => p.trim()).filter(Boolean);
+    
+    // If we have at least 2 parts, take street and city (first 2)
+    // If only 1 part, use it as is
+    if (parts.length >= 2) {
+      const short = `${parts[0]}, ${parts[1]}`;
+      return short.length > 50 ? `${short.slice(0, 47)}…` : short;
+    }
+    
+    // Single part address - truncate if too long
+    return address.length > 50 ? `${address.slice(0, 47)}…` : address;
+  };
+
+  /**
+   * Format expiration time for display
+   */
+  const formatExpirationTime = (expiresAt) => {
+    if (!expiresAt) return null;
+    const expires = new Date(expiresAt);
+    const now = new Date();
+    const diffMs = expires - now;
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+    
+    if (diffHours > 24) {
+      const days = Math.floor(diffHours / 24);
+      return `${days} day${days > 1 ? 's' : ''} left`;
+    } else if (diffHours > 0) {
+      return `${diffHours}h ${diffMinutes}m left`;
+    } else if (diffMinutes > 0) {
+      return `${diffMinutes}m left`;
+    } else {
+      return "Expiring soon";
+    }
+  };
+
   return (
     <div className="explore-page-wrapper">
       <div className="explore-container">
@@ -326,22 +505,103 @@ function Explore() {
               Discover places shared by your friends, sorted by rating
             </p>
           </div>
-          <button
-            className="filter-button"
-            onClick={() => setIsFilterOpen(!isFilterOpen)}
-            aria-label="Toggle filters"
-          >
-            <span className="filter-icon">🔍</span>
-            Filters
-            {selectedCategories.length > 0 || minRating > 0 || maxRating < 5 ? (
-              <span className="filter-badge">
-                {selectedCategories.length +
-                  (minRating > 0 ? 1 : 0) +
-                  (maxRating < 5 ? 1 : 0)}
-              </span>
-            ) : null}
-          </button>
+          <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
+            <button
+              className="filter-button"
+              onClick={() => setIsAddFriendOpen(!isAddFriendOpen)}
+              aria-label="Add friend"
+              style={{ background: "var(--brand)" }}
+            >
+              <span className="filter-icon">➕</span>
+              Add Friend
+            </button>
+            <button
+              className="filter-button"
+              onClick={() => setIsFilterOpen(!isFilterOpen)}
+              aria-label="Toggle filters"
+            >
+              <span className="filter-icon">🔍</span>
+              Filters
+              {selectedCategories.length > 0 || minRating > 0 || maxRating < 5 || selectedFriend ? (
+                <span className="filter-badge">
+                  {selectedCategories.length +
+                    (minRating > 0 ? 1 : 0) +
+                    (maxRating < 5 ? 1 : 0) +
+                    (selectedFriend ? 1 : 0)}
+                </span>
+              ) : null}
+            </button>
+          </div>
         </div>
+
+        {/* Add Friend Modal */}
+        {isAddFriendOpen && (
+          <div className="filter-panel" style={{ marginBottom: "2rem" }}>
+            <div className="filter-panel-header">
+              <h2>Add Friend</h2>
+              <button
+                className="close-filter-button"
+                onClick={() => {
+                  setIsAddFriendOpen(false);
+                  setAddFriendError(null);
+                  setAddFriendSuccess(null);
+                  setNewFriendEmail("");
+                }}
+                aria-label="Close add friend"
+              >
+                ✕
+              </button>
+            </div>
+            <form onSubmit={handleAddFriend}>
+              <div className="filter-section">
+                <label className="filter-label">Friend's Email</label>
+                <input
+                  type="email"
+                  value={newFriendEmail}
+                  onChange={(e) => {
+                    setNewFriendEmail(e.target.value);
+                    setAddFriendError(null);
+                    setAddFriendSuccess(null);
+                  }}
+                  placeholder="Enter friend's email"
+                  className="filter-select"
+                  disabled={isAddingFriend}
+                  style={{ marginBottom: "1rem" }}
+                />
+                <button
+                  type="submit"
+                  className="filter-button"
+                  disabled={isAddingFriend}
+                  style={{ width: "100%" }}
+                >
+                  {isAddingFriend ? "Adding..." : "Add Friend"}
+                </button>
+              </div>
+              {addFriendError && (
+                <div style={{ 
+                  padding: "0.75rem", 
+                  background: "rgba(239, 68, 68, 0.1)", 
+                  color: "#ef4444", 
+                  borderRadius: "6px",
+                  marginTop: "1rem"
+                }}>
+                  {addFriendError}
+                </div>
+              )}
+              {addFriendSuccess && (
+                <div style={{ 
+                  padding: "0.75rem", 
+                  background: "rgba(34, 197, 94, 0.1)", 
+                  color: "#22c55e", 
+                  borderRadius: "6px",
+                  marginTop: "1rem"
+                }}>
+                  {addFriendSuccess}
+                </div>
+              )}
+            </form>
+          </div>
+        )}
 
         {/* Filter panel - shown when filter button is clicked */}
         {isFilterOpen && (
@@ -371,6 +631,64 @@ function Explore() {
                 <option value="newest">Newest First</option>
               </select>
             </div>
+
+            {/* Friend filter */}
+            {friendProfiles.length > 0 ? (
+              <div className="filter-section">
+                <label className="filter-label">Filter by Friend</label>
+                <select
+                  className="filter-select"
+                  value={selectedFriend}
+                  onChange={(e) => setSelectedFriend(e.target.value)}
+                >
+                  <option value="">All Friends ({friendProfiles.length})</option>
+                  {friendProfiles.map((friend) => (
+                    <option key={friend.id} value={friend.id}>
+                      {friend.username || friend.email}
+                    </option>
+                  ))}
+                </select>
+                {selectedFriend && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedFriend("")}
+                    style={{
+                      marginTop: "0.5rem",
+                      padding: "0.5rem 1rem",
+                      background: "transparent",
+                      color: "var(--muted)",
+                      border: "1px solid var(--border)",
+                      borderRadius: "6px",
+                      cursor: "pointer",
+                      fontSize: "0.875rem",
+                      transition: "all 0.2s ease"
+                    }}
+                    onMouseEnter={(e) => {
+                      e.target.style.background = "var(--bg)";
+                      e.target.style.borderColor = "var(--brand)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.background = "transparent";
+                      e.target.style.borderColor = "var(--border)";
+                    }}
+                  >
+                    Clear Friend Filter
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="filter-section">
+                <label className="filter-label">Filter by Friend</label>
+                <p style={{ 
+                  color: "var(--muted)", 
+                  opacity: 0.7, 
+                  fontSize: "0.875rem",
+                  margin: "0.5rem 0 0 0"
+                }}>
+                  Add friends to filter by specific friend's pins
+                </p>
+              </div>
+            )}
 
             {/* Category filter */}
             <div className="filter-section">
@@ -486,9 +804,15 @@ function Explore() {
 
                   {/* Address */}
                   {place.address && (
-                    <p className="place-card-address">
-                      📍 {place.address}
-                    </p>
+                    <div className="place-card-address">
+                      <span className="place-card-chip address-chip">📍 Address</span>
+                      <span
+                        className="place-card-address-text"
+                        title={place.address}
+                      >
+                        {formatAddress(place.address)}
+                      </span>
+                    </div>
                   )}
 
                   {/* Distance from user (if location is available) */}
@@ -507,7 +831,29 @@ function Explore() {
 
                   {/* Description */}
                   {place.description && (
-                    <p className="place-card-description">{place.description}</p>
+                    <div className="place-card-description">
+                      <span className="place-card-chip description-chip">📝 Description</span>
+                      <p className="place-card-description-text">
+                        {place.description}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Expiration badge for temporary pins */}
+                  {place.expires_at && (
+                    <div style={{ 
+                      marginTop: "0.5rem",
+                      display: "inline-block",
+                      padding: "0.25rem 0.5rem",
+                      background: "rgba(255, 193, 7, 0.2)",
+                      borderRadius: "6px",
+                      fontSize: "0.75rem",
+                      color: "#ffc107",
+                      fontWeight: "600",
+                      border: "1px solid rgba(255, 193, 7, 0.4)"
+                    }}>
+                      ⏰ {formatExpirationTime(place.expires_at)}
+                    </div>
                   )}
 
                   {/* Additional info */}
