@@ -29,9 +29,11 @@ function Profile() {
 
   // State for friends list (friend IDs)
   const [friendIds, setFriendIds] = useState([]);
+  const [friendProfiles, setFriendProfiles] = useState([]); // Store friend profiles
 
   // State for friends section visibility (dropdown)
   const [isFriendsOpen, setIsFriendsOpen] = useState(false);
+  const [isViewFriendsOpen, setIsViewFriendsOpen] = useState(false);
 
   // State for filter modal visibility
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -89,6 +91,31 @@ function Profile() {
           setUserPins([]);
         } else {
           setUserPins(pinsData || []);
+        }
+
+        // Load friends list
+        const { data: friendsData, error: friendsError } = await supabase
+          .from("friends")
+          .select("friend_id")
+          .eq("user_id", authUser.id);
+
+        if (!friendsError && friendsData) {
+          const friendIdsList = friendsData.map((f) => f.friend_id);
+          setFriendIds(friendIdsList);
+          
+          // Load friend profiles
+          if (friendIdsList.length > 0) {
+            const { data: profilesData, error: profilesError } = await supabase
+              .from("profiles")
+              .select("id, username, email, profile_picture")
+              .in("id", friendIdsList);
+            
+            if (!profilesError && profilesData) {
+              setFriendProfiles(profilesData);
+            }
+          } else {
+            setFriendProfiles([]);
+          }
         }
       } catch (err) {
         console.error("Unexpected error loading profile:", err);
@@ -309,18 +336,32 @@ function Profile() {
         <div className="profile-info-section">
           <div className="profile-header">
             <h1>My Profile</h1>
-            <button
-              className="friends-toggle-button"
-              onClick={() => setIsFriendsOpen(!isFriendsOpen)}
-              aria-label="Toggle friends section"
-              title="Manage friends"
-            >
-              <span className="friends-icon">👥</span>
-              Friends
-              <span className={`friends-arrow ${isFriendsOpen ? "open" : ""}`}>
-                ▼
-              </span>
-            </button>
+            <div style={{ display: "flex", gap: "0.75rem" }}>
+              <button
+                className="friends-toggle-button"
+                onClick={() => setIsViewFriendsOpen(!isViewFriendsOpen)}
+                aria-label="View friends list"
+                title="View your friends"
+              >
+                <span className="friends-icon">👥</span>
+                View Friends
+                <span className={`friends-arrow ${isViewFriendsOpen ? "open" : ""}`}>
+                  ▼
+                </span>
+              </button>
+              <button
+                className="friends-toggle-button"
+                onClick={() => setIsFriendsOpen(!isFriendsOpen)}
+                aria-label="Toggle friends section"
+                title="Add friends"
+              >
+                <span className="friends-icon">➕</span>
+                Add Friend
+                <span className={`friends-arrow ${isFriendsOpen ? "open" : ""}`}>
+                  ▼
+                </span>
+              </button>
+            </div>
           </div>
 
           {/* Profile Picture Section */}
@@ -398,11 +439,106 @@ function Profile() {
           </div>
         </div>
 
+        {/* View Friends Modal */}
+        {isViewFriendsOpen && (
+          <>
+            <div className="friends-modal-backdrop" onClick={() => setIsViewFriendsOpen(false)}></div>
+            <div className="friends-modal">
+              <div className="friends-modal-header">
+                <h3>My Friends ({friendProfiles.length})</h3>
+                <button
+                  className="friends-modal-close"
+                  onClick={() => setIsViewFriendsOpen(false)}
+                  aria-label="Close friends list"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="friends-modal-content" style={{ maxHeight: "60vh", overflowY: "auto" }}>
+                {friendProfiles.length === 0 ? (
+                  <p style={{ textAlign: "center", color: "var(--muted)", opacity: 0.7, padding: "2rem" }}>
+                    You haven't added any friends yet. Use the "Add Friend" button to add friends by email.
+                  </p>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                    {friendProfiles.map((friend) => (
+                      <div
+                        key={friend.id}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "1rem",
+                          padding: "1rem",
+                          background: "var(--panel)",
+                          border: "1px solid var(--border)",
+                          borderRadius: "8px"
+                        }}
+                      >
+                        {friend.profile_picture ? (
+                          <img
+                            src={friend.profile_picture}
+                            alt={friend.username || friend.email}
+                            style={{
+                              width: "48px",
+                              height: "48px",
+                              borderRadius: "50%",
+                              objectFit: "cover"
+                            }}
+                          />
+                        ) : (
+                          <div
+                            style={{
+                              width: "48px",
+                              height: "48px",
+                              borderRadius: "50%",
+                              background: "var(--bg)",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              fontSize: "1.5rem"
+                            }}
+                          >
+                            👤
+                          </div>
+                        )}
+                        <div style={{ flex: 1 }}>
+                          <p style={{ margin: 0, fontWeight: "600", color: "var(--muted)" }}>
+                            {friend.username || "No username"}
+                          </p>
+                          <p style={{ margin: "4px 0 0 0", fontSize: "0.875rem", color: "var(--muted)", opacity: 0.7 }}>
+                            {friend.email}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </>
+        )}
+
         {/* Friends Section - Modal Overlay */}
         {isFriendsOpen && (
           <FriendsSection
             currentUserId={user?.id}
-            onFriendsChange={(ids) => setFriendIds(ids)}
+            onFriendsChange={(ids) => {
+              setFriendIds(ids);
+              // Reload friend profiles when friends change
+              if (ids.length > 0) {
+                supabase
+                  .from("profiles")
+                  .select("id, username, email, profile_picture")
+                  .in("id", ids)
+                  .then(({ data, error }) => {
+                    if (!error && data) {
+                      setFriendProfiles(data);
+                    }
+                  });
+              } else {
+                setFriendProfiles([]);
+              }
+            }}
             onClose={() => setIsFriendsOpen(false)}
           />
         )}

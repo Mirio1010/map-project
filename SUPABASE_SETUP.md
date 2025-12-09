@@ -53,6 +53,7 @@ CREATE TABLE locations (
   lat DOUBLE PRECISION,
   lng DOUBLE PRECISION,
   rating INTEGER DEFAULT 5,
+  expires_at TIMESTAMP WITH TIME ZONE, -- NULL for permanent pins, timestamp for temporary pins
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -180,5 +181,18 @@ SET email = (
   WHERE auth.users.id = profiles.id
 )
 WHERE email IS NULL;
+```
+
+## Updating Existing `locations` Table
+
+If your `locations` table doesn't have an `expires_at` column (for temporary pins feature), add it:
+
+```sql
+-- Add expires_at column to locations if it doesn't exist
+ALTER TABLE locations 
+ADD COLUMN IF NOT EXISTS expires_at TIMESTAMP WITH TIME ZONE;
+
+-- Optional: Create an index for faster queries on expired pins
+CREATE INDEX IF NOT EXISTS idx_locations_expires_at ON locations(expires_at) WHERE expires_at IS NOT NULL;
 ```
 
