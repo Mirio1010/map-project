@@ -2,28 +2,35 @@
 
 ## Overview
 
-This site consists of an interactive map application where users can drop pins, assign tags, and add descriptions to locations they want to remember or share. Users can view pins from friends, filter locations by category, and explore only the spots that fall within their current map view. The aim is to create a social, personalized way to discover events, places, and experiences through a shared map.
+This project is an interactive map application that allows users to drop pins on locations they want to remember or share. Each pin can include tags, descriptions, and optional date/time details. Users can explore locations added by friends, filter pins by category, and view only the spots currently visible within their map view.
+
+The goal is to create a social and personalized map experience — making it easy to discover events, places, and meaningful locations through a shared, interactive map.
 
 ![Demo](./src/assets/demo.gif)
 
+## Demo Video
+
+[![Map Project Demo](https://img.youtube.com/vi/1c2sOuXYXR8/0.jpg)](https://youtu.be/1c2sOuXYXR8)
+
 ### MVP’s:
 
-- Map Background
-- Drop a pin
+- Interactive map background
+- Ability to drop pins on the map
 
 ### Features:
 
-- User can see pins from other users
-- Each user has a distinct pin for recognition
-- User can assign a tag on a pin for filtering purposes
-- User can add description, date and time on each pin
+- View pins created by other users
+- Distinct pin styles per user for easy recognition
+- Assign categories/tags to pins for filtering
+- Add descriptions, dates, and times to locations
+- Filter visible pins based on the current map viewport
 
 ## Tech Stack
 
-- **Frontend:** React, Tailwind CSS, JavaScript/TypeScript
-- **Maps:** Leaflet / Mapbox / Google Maps API
-- **Backend/Database:** Supabase or Firebase (for location data and user contributions)
-- **Hosting:** Vercel or Netlify
+- **Frontend:** React (JSX), Tailwind CSS, JavaScript
+- **Maps:** Leaflet
+- **Backend/Database:** Supabase (PostgreSQL + Authentication)
+- **Hosting:** Vercel or Netlify (coming 12/14)
 - **Version Control:** Git & GitHub
 
 ## Supabase Authentication (local setup)
@@ -53,10 +60,22 @@ Open `http://localhost:5173/` and you'll see a landing page with Sign In and Sig
 
 This project is developed as part of the **CUNY Tech Prep Fellowship (2025–2026 Cohort)** by a collaborative student team across multiple CUNY campuses.
 
+
+<p align="center">
+  <img src="./src/assets/TeamPhoto.jpg" alt="Spoty team at CUNY Tech Prep Demo Night" width="650" />
+</p>
+
+<p align="center">
+  <em>The Spoty team presenting the project at CUNY Tech Prep Demo Night (LinkedIn NYC).</em>
+</p>
+
+
+
 ## 📑(For CISC 4900 Requirement Only) (CTP team ignore this)
 
 This section is for my **CISC 4900 Independent Project class**.  
 It contains my timelog and is not part of the project deliverables for the team.
+
 
 👉 [View My Timelog](https://docs.google.com/spreadsheets/d/1t9WjDZbcMgz16ysqB7L7l7HQdXJRdsoC8jRkrP5u7Qs/edit?usp=sharing)
 
