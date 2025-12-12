@@ -10,7 +10,20 @@ The goal is to create a social and personalized map experience — making it eas
 
 ## Demo Video
 
-[![Map Project Demo](https://img.youtube.com/vi/1c2sOuXYXR8/0.jpg)](https://youtu.be/1c2sOuXYXR8)
+<p align="center">
+  <a href="https://youtu.be/1c2sOuXYXR8" target="_blank">
+    <img 
+      src="https://img.youtube.com/vi/1c2sOuXYXR8/maxresdefault.jpg" 
+      alt="Spoty map project demo video" 
+      width="700"
+    />
+  </a>
+</p>
+
+<p align="center">
+  <em>Full project walkthrough and demo on YouTube.</em>
+</p>
+
 
 ### MVP’s:
 
