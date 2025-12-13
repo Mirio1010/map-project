@@ -6,7 +6,7 @@ This project is an interactive map application that allows users to drop pins on
 
 The goal is to create a social and personalized map experience — making it easy to discover events, places, and meaningful locations through a shared, interactive map.
 
-![Demo](./src/assets/demo.gif)
+![Demo](./src/assets/demoV2.gif)
 
 ## Demo Video
 
