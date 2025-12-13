@@ -1,4 +1,4 @@
-# 🗺️ Map Project
+# 🗺️ Spoty
 
 ## Overview
 
