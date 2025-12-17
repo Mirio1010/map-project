@@ -43,7 +43,7 @@ The goal is to create a social and personalized map experience — making it eas
 - **Frontend:** React (JSX), Tailwind CSS, JavaScript
 - **Maps:** Leaflet
 - **Backend/Database:** Supabase (PostgreSQL + Authentication)
-- **Hosting:** Vercel or Netlify (coming 12/17)
+- **Hosting:** Vercel or Netlify (coming 12/19)
 - **Version Control:** Git & GitHub
 
 ## Supabase Authentication (local setup)
