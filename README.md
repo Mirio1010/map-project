@@ -1,5 +1,8 @@
 # 🗺️ Spoty
 
+🚀Live:  https://spotymap.netlify.app/
+
+
 ## Overview
 
 This project is an interactive map application that allows users to drop pins on locations they want to remember or share. Each pin can include tags, descriptions, and optional date/time details. Users can explore locations added by friends, filter pins by category, and view only the spots currently visible within their map view.
