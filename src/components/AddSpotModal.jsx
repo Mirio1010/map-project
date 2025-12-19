@@ -622,6 +622,7 @@ function AddSpotModal({ isOpen, onClose, onSave, initialCoords, initialPin }) {
                 border: "1px solid #ccc",
                 background: "#f3f4f6",
                 borderRadius: "6px",
+                cursor: "pointer"
               }}
             >
               Cancel
@@ -634,6 +635,7 @@ function AddSpotModal({ isOpen, onClose, onSave, initialCoords, initialPin }) {
                 background: "#111827",
                 color: "white",
                 borderRadius: "6px",
+                cursor: "pointer"
               }}
             >
               {initialPin ? "Save" : "Add Spot"}
