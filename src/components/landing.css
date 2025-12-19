@@ -3,6 +3,9 @@
   font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   color: #fdfdfd;
   background: linear-gradient(135deg, #070808, #4d4e51);
+  height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 /* NAV */
