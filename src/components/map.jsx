@@ -89,101 +89,149 @@ function Map({ pins, friendsPins = [], friendUsernames = {}, friendColors = {}, 
 
   return (
     <div className="right-pane" style={{ height: "100%", width: "100%" }}>
-      <MapContainer 
-      center={[40.7128, -74.006]} 
-      zoom={12} 
-      style={{ 
-        height: "100%", 
-        width: "100%" 
-        }}>
-        <TileLayer attribution='&copy; <a href="https://www.maptiler.com/">MapTiler</a>' url="https://api.maptiler.com/maps/pastel/{z}/{x}/{y}.png?key=lxScjRx8ItyJXrWd3tbU" />
+      <MapContainer
+        center={[40.7128, -74.006]}
+        zoom={12}
+        style={{
+          height: "100%",
+          width: "100%",
+        }}
+      >
+        {
+          // OLD Maptiler api key. Leave here incase we want to switch to it. (There's a monthly quota)
+        /* <TileLayer attribution='&copy; <a href="https://www.maptiler.com/">MapTiler</a>' url="https://api.maptiler.com/maps/pastel/{z}/{x}/{y}.png?key=lxScjRx8ItyJXrWd3tbU" />
+         */}
 
+        <TileLayer
+          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+          attribution="&copy; OpenStreetMap contributors &copy; CARTO"
+        />
         <ClickHandler onClickOnMap={onClickOnMap} />
-        <MapController mapAction={mapAction} pins={pins} sidebarOpen={sidebarOpen} />
+        <MapController
+          mapAction={mapAction}
+          pins={pins}
+          sidebarOpen={sidebarOpen}
+        />
 
         {/* User's own pins */}
         {pins.map((pin, index) => {
-          const pinIcon = pin.category ? createPinIcon(pin.category) : defaultPin;
+          const pinIcon = pin.category
+            ? createPinIcon(pin.category)
+            : defaultPin;
           return (
-            <Marker key={`user-${index}`} position={[pin.lat, pin.lng]} icon={pinIcon}>
+            <Marker
+              key={`user-${index}`}
+              position={[pin.lat, pin.lng]}
+              icon={pinIcon}
+            >
               <Popup>
-                <div style={{ 
-                  maxWidth: "220px", 
-                  padding: "0" }}>
+                <div
+                  style={{
+                    maxWidth: "220px",
+                    padding: "0",
+                  }}
+                >
                   <div style={{ padding: "12px" }}>
-                    <h3 style={{ 
-                      margin: "0 0 4px 0", 
-                      fontSize: "16px", 
-                      fontWeight: "600", 
-                      color: "#111827" }}>
+                    <h3
+                      style={{
+                        margin: "0 0 4px 0",
+                        fontSize: "16px",
+                        fontWeight: "600",
+                        color: "#111827",
+                      }}
+                    >
                       {pin.name}
                     </h3>
-                    
+
                     {/* SHOW RATING IN POPUP */}
                     {renderStars(pin.rating)}
 
                     {pin.images && pin.images.length > 0 && (
-                      <div style={{ 
-                        marginBottom: "10px", 
-                        overflow: "hidden", 
-                        borderRadius: "8px", 
-                        boxShadow: "0 2px 8px rgba(0,0,0,0.15)" }}>
-                        <img src={pin.images[0]} alt="spot" style={{ 
-                          width: "100%", 
-                          height: "auto", 
-                          maxHeight: "250px", 
-                          objectFit: "contain", 
-                          display: "block" }} />
+                      <div
+                        style={{
+                          marginBottom: "10px",
+                          overflow: "hidden",
+                          borderRadius: "8px",
+                          boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                        }}
+                      >
+                        <img
+                          src={pin.images[0]}
+                          alt="spot"
+                          style={{
+                            width: "100%",
+                            height: "auto",
+                            maxHeight: "250px",
+                            objectFit: "contain",
+                            display: "block",
+                          }}
+                        />
                       </div>
                     )}
                     {pin.description && (
-                      <p style={{ 
-                        margin: "0", 
-                        fontSize: "13px", 
-                        lineHeight: "1.5", 
-                        color: "#6b7280" }}>
+                      <p
+                        style={{
+                          margin: "0",
+                          fontSize: "13px",
+                          lineHeight: "1.5",
+                          color: "#6b7280",
+                        }}
+                      >
                         {pin.description}
                       </p>
                     )}
                     {pin.address && (
-                      <div style={{ 
-                        marginTop: "8px",
-                        paddingTop: "8px",
-                        borderTop: "1px solid #e5e7eb"
-                      }}>
-                        <p style={{ 
-                          margin: "0 0 4px 0", 
-                          fontSize: "11px", 
-                          color: "#9ca3af",
-                          fontWeight: 600,
-                          textTransform: "uppercase",
-                          letterSpacing: "0.5px"
-                        }}>
+                      <div
+                        style={{
+                          marginTop: "8px",
+                          paddingTop: "8px",
+                          borderTop: "1px solid #e5e7eb",
+                        }}
+                      >
+                        <p
+                          style={{
+                            margin: "0 0 4px 0",
+                            fontSize: "11px",
+                            color: "#9ca3af",
+                            fontWeight: 600,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.5px",
+                          }}
+                        >
                           📍 Address
                         </p>
-                        <p style={{ 
-                          margin: "0", 
-                          fontSize: "12px", 
-                          color: "#1fcece",
-                          fontWeight: 500 
-                        }}>
-                          {pin.address.split(",").slice(0, 2).join(", ").length > 40 
-                            ? `${pin.address.split(",").slice(0, 2).join(", ").slice(0, 37)}…`
+                        <p
+                          style={{
+                            margin: "0",
+                            fontSize: "12px",
+                            color: "#1fcece",
+                            fontWeight: 500,
+                          }}
+                        >
+                          {pin.address.split(",").slice(0, 2).join(", ")
+                            .length > 40
+                            ? `${pin.address
+                                .split(",")
+                                .slice(0, 2)
+                                .join(", ")
+                                .slice(0, 37)}…`
                             : pin.address.split(",").slice(0, 2).join(", ")}
                         </p>
                       </div>
                     )}
                     {pin.expires_at && (
-                      <div style={{ 
-                        marginTop: "8px",
-                        padding: "4px 8px",
-                        background: "rgba(255, 193, 7, 0.15)",
-                        borderRadius: "4px",
-                        fontSize: "11px",
-                        color: "#ffc107",
-                        fontWeight: "600",
-                        border: "1px solid rgba(255, 193, 7, 0.3)"
-                      }}>
+                      <div
+                        style={{
+                          marginTop: "8px",
+                          padding: "4px 8px",
+                          background: "rgba(255, 193, 7, 0.15)",
+                          borderRadius: "4px",
+                          fontSize: "11px",
+                          color: "#ffc107",
+                          fontWeight: "600",
+                          border: "1px solid rgba(255, 193, 7, 0.3)",
+                        }}
+                      >
                         ⏰ {formatExpirationTime(pin.expires_at)}
                       </div>
                     )}
@@ -198,118 +246,154 @@ function Map({ pins, friendsPins = [], friendUsernames = {}, friendColors = {}, 
         {friendsPins.map((pin, index) => {
           const friendName = friendUsernames[pin.user_id] || "Friend";
           const friendColor = friendColors[pin.user_id] || "#1fcece";
-          
+
           // Use colored pin icon that matches the friend's color
-          const friendPinIcon = pin.category 
+          const friendPinIcon = pin.category
             ? createColoredPinIcon(pin.category, friendColor)
             : createColoredPinIcon(null, friendColor);
-          
+
           return (
-            <Marker 
-              key={`friend-${index}`} 
-              position={[pin.lat, pin.lng]} 
+            <Marker
+              key={`friend-${index}`}
+              position={[pin.lat, pin.lng]}
               icon={friendPinIcon}
               eventHandlers={{
                 add: (e) => {
                   // Add custom class for friend marker
                   const markerElement = e.target.getElement();
                   if (markerElement) {
-                    markerElement.classList.add('friend-marker');
-                    markerElement.style.setProperty('--friend-color', friendColor);
-                    markerElement.style.zIndex = '1001';
+                    markerElement.classList.add("friend-marker");
+                    markerElement.style.setProperty(
+                      "--friend-color",
+                      friendColor
+                    );
+                    markerElement.style.zIndex = "1001";
                   }
-                }
+                },
               }}
             >
               <Popup>
-                <div style={{ 
-                  maxWidth: "220px", 
-                  padding: "0" }}>
+                <div
+                  style={{
+                    maxWidth: "220px",
+                    padding: "0",
+                  }}
+                >
                   <div style={{ padding: "12px" }}>
-                    <div style={{ 
-                      marginBottom: "8px", 
-                      padding: "4px 8px", 
-                      background: `${friendColor}20`, 
-                      borderRadius: "4px",
-                      fontSize: "12px",
-                      fontWeight: "600",
-                      color: friendColor,
-                      border: `1px solid ${friendColor}40` }}>
+                    <div
+                      style={{
+                        marginBottom: "8px",
+                        padding: "4px 8px",
+                        background: `${friendColor}20`,
+                        borderRadius: "4px",
+                        fontSize: "12px",
+                        fontWeight: "600",
+                        color: friendColor,
+                        border: `1px solid ${friendColor}40`,
+                      }}
+                    >
                       👥 Shared by {friendName}
                     </div>
-                    <h3 style={{ 
-                      margin: "0 0 4px 0", 
-                      fontSize: "16px", 
-                      fontWeight: "600", 
-                      color: "#111827" }}>
+                    <h3
+                      style={{
+                        margin: "0 0 4px 0",
+                        fontSize: "16px",
+                        fontWeight: "600",
+                        color: "#111827",
+                      }}
+                    >
                       {pin.name}
                     </h3>
-                    
+
                     {/* SHOW RATING IN POPUP */}
                     {renderStars(pin.rating)}
 
                     {pin.images && pin.images.length > 0 && (
-                      <div style={{ 
-                        marginBottom: "10px", 
-                        overflow: "hidden", 
-                        borderRadius: "8px", 
-                        boxShadow: "0 2px 8px rgba(0,0,0,0.15)" }}>
-                        <img src={pin.images[0]} alt="spot" style={{ 
-                          width: "100%", 
-                          height: "auto", 
-                          maxHeight: "250px", 
-                          objectFit: "contain", 
-                          display: "block" }} />
+                      <div
+                        style={{
+                          marginBottom: "10px",
+                          overflow: "hidden",
+                          borderRadius: "8px",
+                          boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                        }}
+                      >
+                        <img
+                          src={pin.images[0]}
+                          alt="spot"
+                          style={{
+                            width: "100%",
+                            height: "auto",
+                            maxHeight: "250px",
+                            objectFit: "contain",
+                            display: "block",
+                          }}
+                        />
                       </div>
                     )}
                     {pin.description && (
-                      <p style={{ 
-                        margin: "0", 
-                        fontSize: "13px", 
-                        lineHeight: "1.5", 
-                        color: "#6b7280" }}>
+                      <p
+                        style={{
+                          margin: "0",
+                          fontSize: "13px",
+                          lineHeight: "1.5",
+                          color: "#6b7280",
+                        }}
+                      >
                         {pin.description}
                       </p>
                     )}
                     {pin.address && (
-                      <div style={{ 
-                        marginTop: "8px",
-                        paddingTop: "8px",
-                        borderTop: "1px solid #e5e7eb"
-                      }}>
-                        <p style={{ 
-                          margin: "0 0 4px 0", 
-                          fontSize: "11px", 
-                          color: "#9ca3af",
-                          fontWeight: 600,
-                          textTransform: "uppercase",
-                          letterSpacing: "0.5px"
-                        }}>
+                      <div
+                        style={{
+                          marginTop: "8px",
+                          paddingTop: "8px",
+                          borderTop: "1px solid #e5e7eb",
+                        }}
+                      >
+                        <p
+                          style={{
+                            margin: "0 0 4px 0",
+                            fontSize: "11px",
+                            color: "#9ca3af",
+                            fontWeight: 600,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.5px",
+                          }}
+                        >
                           📍 Address
                         </p>
-                        <p style={{ 
-                          margin: "0", 
-                          fontSize: "12px", 
-                          color: "#1fcece",
-                          fontWeight: 500 
-                        }}>
-                          {pin.address.split(",").slice(0, 2).join(", ").length > 40 
-                            ? `${pin.address.split(",").slice(0, 2).join(", ").slice(0, 37)}…`
+                        <p
+                          style={{
+                            margin: "0",
+                            fontSize: "12px",
+                            color: "#1fcece",
+                            fontWeight: 500,
+                          }}
+                        >
+                          {pin.address.split(",").slice(0, 2).join(", ")
+                            .length > 40
+                            ? `${pin.address
+                                .split(",")
+                                .slice(0, 2)
+                                .join(", ")
+                                .slice(0, 37)}…`
                             : pin.address.split(",").slice(0, 2).join(", ")}
                         </p>
                       </div>
                     )}
                     {pin.expires_at && (
-                      <div style={{ 
-                        marginTop: "8px",
-                        padding: "4px 8px",
-                        background: "rgba(255, 193, 7, 0.15)",
-                        borderRadius: "4px",
-                        fontSize: "11px",
-                        color: "#ffc107",
-                        fontWeight: "600",
-                        border: "1px solid rgba(255, 193, 7, 0.3)"
-                      }}>
+                      <div
+                        style={{
+                          marginTop: "8px",
+                          padding: "4px 8px",
+                          background: "rgba(255, 193, 7, 0.15)",
+                          borderRadius: "4px",
+                          fontSize: "11px",
+                          color: "#ffc107",
+                          fontWeight: "600",
+                          border: "1px solid rgba(255, 193, 7, 0.3)",
+                        }}
+                      >
                         ⏰ {formatExpirationTime(pin.expires_at)}
                       </div>
                     )}
