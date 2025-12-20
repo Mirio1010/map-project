@@ -24,7 +24,7 @@ The goal is to create a social and personalized map experience — making it eas
 </p>
 
 <p align="center">
-  <em>Full project walkthrough and demo on YouTube.</em>
+  <em>Full project walkthrough and demo on YouTube(click image above).</em>
 </p>
 
 
