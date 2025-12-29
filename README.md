@@ -49,6 +49,35 @@ The goal is to create a social and personalized map experience — making it eas
 - **Hosting:** Netlify --> https://spotymap.netlify.app/
 - **Version Control:** Git & GitHub
 
+## 📁 Project Structure
+
+```txt
+SPOTY/
+├── .vite/                  # Vite build cache
+├── frontend/               # Frontend entry (deployment-related)
+│   └── index.html
+├── public/                 # Public static assets
+│   ├── images/
+│   ├── pics/
+│   └── _redirects          # Netlify routing config
+├── src/                    # Main source code
+│   ├── assets/             # App-specific images & assets
+│   ├── components/         # Reusable React components
+│   ├── styles/             # Global and component styles
+│   ├── utils/              # Helper / utility functions
+│   ├── App.jsx             # Root React component
+│   └── main.jsx            # React entry point
+├── .gitignore
+├── eslint.config.js        # ESLint configuration
+├── index.html              # Root HTML file
+├── package.json            # Project dependencies & scripts
+├── package-lock.json
+├── README.md               # Project documentation
+├── SUPABASE_SETUP.md       # Backend setup instructions
+└── vite.config.js          # Vite configuration
+```
+
+
 ## Supabase Authentication (local setup)
 
 To enable authentication with Supabase, add the following environment variables to a `.env` file at the project root (Vite expects `VITE_` prefixes):
