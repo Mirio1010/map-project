@@ -314,7 +314,6 @@ function AddSpotModal({ isOpen, onClose, onSave, initialCoords, initialPin }) {
         <form onSubmit={handleSubmit} style={{ display: "grid", gap: "10px" }}>
           {/* rating selector//////////////////////////////////////////////////////////////////////////// */}
 
-
           <label style={{ fontSize: "12px", color: "#666" }}>Rating</label>
           <div style={{ display: "flex", gap: "5px" }}>
             {[1, 2, 3, 4, 5].map((star) => (
@@ -332,8 +331,8 @@ function AddSpotModal({ isOpen, onClose, onSave, initialCoords, initialPin }) {
               </span>
             ))}
           </div>
-          
-        {/* rating selector//////////////////////////////////////////////////////////////////////////// */}
+
+          {/* rating selector//////////////////////////////////////////////////////////////////////////// */}
           <label style={{ fontSize: "12px", color: "#666" }}>
             Place name (optional)
           </label>
@@ -348,7 +347,6 @@ function AddSpotModal({ isOpen, onClose, onSave, initialCoords, initialPin }) {
             }}
             placeholder="e.g. Joe's Coffee"
           />
-          
 
           <label style={{ fontSize: "12px", color: "#666" }}>
             Address / Location
@@ -441,20 +439,24 @@ function AddSpotModal({ isOpen, onClose, onSave, initialCoords, initialPin }) {
           </select>
 
           {/* Temporary Pin Option */}
-          <div style={{ 
-            padding: "12px", 
-            background: "#f9fafb", 
-            borderRadius: "6px",
-            border: "1px solid #e5e7eb"
-          }}>
-            <label style={{ 
-              display: "flex", 
-              alignItems: "center", 
-              gap: "8px",
-              fontSize: "12px", 
-              color: "#666",
-              cursor: "pointer"
-            }}>
+          <div
+            style={{
+              padding: "12px",
+              background: "#f9fafb",
+              borderRadius: "6px",
+              border: "1px solid #e5e7eb",
+            }}
+          >
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                fontSize: "12px",
+                color: "#666",
+                cursor: "pointer",
+              }}
+            >
               <input
                 type="checkbox"
                 checked={isTemporary}
@@ -465,7 +467,14 @@ function AddSpotModal({ isOpen, onClose, onSave, initialCoords, initialPin }) {
             </label>
             {isTemporary && (
               <div style={{ marginTop: "8px" }}>
-                <label style={{ fontSize: "12px", color: "#666", display: "block", marginBottom: "4px" }}>
+                <label
+                  style={{
+                    fontSize: "12px",
+                    color: "#666",
+                    display: "block",
+                    marginBottom: "4px",
+                  }}
+                >
                   Expiration type:
                 </label>
                 <select
@@ -476,7 +485,10 @@ function AddSpotModal({ isOpen, onClose, onSave, initialCoords, initialPin }) {
                     if (e.target.value === "datetime" && !expirationDateTime) {
                       const defaultDateTime = new Date();
                       defaultDateTime.setHours(defaultDateTime.getHours() + 24);
-                      const localDateTime = new Date(defaultDateTime.getTime() - defaultDateTime.getTimezoneOffset() * 60000)
+                      const localDateTime = new Date(
+                        defaultDateTime.getTime() -
+                          defaultDateTime.getTimezoneOffset() * 60000,
+                      )
                         .toISOString()
                         .slice(0, 16);
                       setExpirationDateTime(localDateTime);
@@ -498,12 +510,21 @@ function AddSpotModal({ isOpen, onClose, onSave, initialCoords, initialPin }) {
 
                 {expirationType === "hours" && (
                   <>
-                    <label style={{ fontSize: "12px", color: "#666", display: "block", marginBottom: "4px" }}>
+                    <label
+                      style={{
+                        fontSize: "12px",
+                        color: "#666",
+                        display: "block",
+                        marginBottom: "4px",
+                      }}
+                    >
                       Hours:
                     </label>
                     <select
                       value={expirationHours}
-                      onChange={(e) => setExpirationHours(parseInt(e.target.value, 10))}
+                      onChange={(e) =>
+                        setExpirationHours(parseInt(e.target.value, 10))
+                      }
                       style={{
                         padding: "6px",
                         border: "1px solid #ccc",
@@ -526,12 +547,21 @@ function AddSpotModal({ isOpen, onClose, onSave, initialCoords, initialPin }) {
 
                 {expirationType === "days" && (
                   <>
-                    <label style={{ fontSize: "12px", color: "#666", display: "block", marginBottom: "4px" }}>
+                    <label
+                      style={{
+                        fontSize: "12px",
+                        color: "#666",
+                        display: "block",
+                        marginBottom: "4px",
+                      }}
+                    >
                       Days:
                     </label>
                     <select
                       value={expirationDays}
-                      onChange={(e) => setExpirationDays(parseInt(e.target.value, 10))}
+                      onChange={(e) =>
+                        setExpirationDays(parseInt(e.target.value, 10))
+                      }
                       style={{
                         padding: "6px",
                         border: "1px solid #ccc",
@@ -552,7 +582,14 @@ function AddSpotModal({ isOpen, onClose, onSave, initialCoords, initialPin }) {
 
                 {expirationType === "datetime" && (
                   <>
-                    <label style={{ fontSize: "12px", color: "#666", display: "block", marginBottom: "4px" }}>
+                    <label
+                      style={{
+                        fontSize: "12px",
+                        color: "#666",
+                        display: "block",
+                        marginBottom: "4px",
+                      }}
+                    >
                       Date & Time:
                     </label>
                     <input
@@ -571,12 +608,15 @@ function AddSpotModal({ isOpen, onClose, onSave, initialCoords, initialPin }) {
                   </>
                 )}
 
-                <p style={{ 
-                  margin: "8px 0 0 0", 
-                  fontSize: "11px", 
-                  color: "#9ca3af" 
-                }}>
-                  This pin will automatically disappear after the selected time. Friends will be able to see it until it expires.
+                <p
+                  style={{
+                    margin: "8px 0 0 0",
+                    fontSize: "11px",
+                    color: "#9ca3af",
+                  }}
+                >
+                  This pin will automatically disappear after the selected time.
+                  Friends will be able to see it until it expires.
                 </p>
               </div>
             )}
@@ -622,7 +662,7 @@ function AddSpotModal({ isOpen, onClose, onSave, initialCoords, initialPin }) {
                 border: "1px solid #ccc",
                 background: "#f3f4f6",
                 borderRadius: "6px",
-                cursor: "pointer"
+                cursor: "pointer",
               }}
             >
               Cancel
@@ -632,10 +672,10 @@ function AddSpotModal({ isOpen, onClose, onSave, initialCoords, initialPin }) {
               style={{
                 padding: "8px 12px",
                 border: "none",
-                background: "#111827",
+                background: "#1cbe52",
                 color: "white",
                 borderRadius: "6px",
-                cursor: "pointer"
+                cursor: "pointer",
               }}
             >
               {initialPin ? "Save" : "Add Spot"}

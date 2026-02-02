@@ -201,6 +201,7 @@
   color: white;
    transition-property: transform;
   transition-duration: 0.3s;
+  border-color: #2563eb;
 }
 
 
