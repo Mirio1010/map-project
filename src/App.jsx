@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import Header from "./components/Header";
 import Sidebar from "./components/sidebar";
 import Map from "./components/map";
@@ -175,6 +175,9 @@ function App() {
     setFriendsDataVersion((v) => v + 1);
   }, []);
 
+  /** Avoid re-setting friends pin state when Supabase returns the same rows (prevents map marker churn). */
+  const friendsPinsDataSigRef = useRef("");
+
   // Load friends pins and usernames
   useEffect(() => {
     const loadFriendsPins = async () => {
@@ -185,8 +188,14 @@ function App() {
         } = await supabase.auth.getUser();
 
         if (userError || !user) {
-          setFriendsPins([]);
-          setFriendUsernames({});
+          // Do not wipe pins on a transient getUser() miss while session UI still shows signed-in.
+          if (!userIdForUi) {
+            friendsPinsDataSigRef.current = "";
+            setFriendsPins([]);
+            setFriendUsernames({});
+            setFriendProfiles([]);
+            setFriendColors({});
+          }
           return;
         }
 
@@ -198,6 +207,7 @@ function App() {
 
         if (friendsError) {
           console.error("Error loading friends:", friendsError.message);
+          friendsPinsDataSigRef.current = "";
           setFriendsPins([]);
           setFriendUsernames({});
           return;
@@ -206,6 +216,7 @@ function App() {
         const friendIdsList = (friendsData || []).map((f) => f.friend_id);
         
         if (friendIdsList.length === 0) {
+          friendsPinsDataSigRef.current = "";
           setFriendsPins([]);
           setFriendUsernames({});
           return;
@@ -220,6 +231,7 @@ function App() {
 
         if (pinsError) {
           console.error("Error loading friends pins:", pinsError.message);
+          friendsPinsDataSigRef.current = "";
           setFriendsPins([]);
           setFriendUsernames({});
           return;
@@ -233,7 +245,11 @@ function App() {
           return expiresAt > now;
         });
 
-        setFriendsPins(validFriendsPins);
+        const pinsDataSig = validFriendsPins.map((p) => p.id).join("|");
+        if (pinsDataSig !== friendsPinsDataSigRef.current) {
+          friendsPinsDataSigRef.current = pinsDataSig;
+          setFriendsPins(validFriendsPins);
+        }
 
         // Load usernames for all friends
         const { data: profilesData, error: profilesError } = await supabase
@@ -248,7 +264,11 @@ function App() {
           (profilesData || []).forEach((profile) => {
             usernameMap[profile.id] = profileDisplayName(profile, "Unknown");
           });
-          setFriendProfiles(profilesData || []);
+          setFriendProfiles((prev) => {
+            const next = profilesData || [];
+            if (JSON.stringify(prev) === JSON.stringify(next)) return prev;
+            return next;
+          });
 
           // Generate consistent colors for friends - ensure unique colors
           const palette = [
@@ -269,39 +289,43 @@ function App() {
             "#a55eea",  // Violet
           ];
           
-          // Preserve existing colors for friends that already have them
-          const existingColorMap = friendColors || {};
-          const colorMap = { ...existingColorMap };
-          const usedColors = new Set(Object.values(existingColorMap));
-          
-          // Assign colors to new friends (those without existing colors)
-          (profilesData || []).forEach((profile) => {
-            // If friend already has a color, keep it
-            if (colorMap[profile.id]) {
-              return;
-            }
-            
-            // Find first unused color from palette
-            let assignedColor = null;
-            for (const color of palette) {
-              if (!usedColors.has(color)) {
-                assignedColor = color;
-                usedColors.add(color);
-                break;
-              }
-            }
-            // If all colors are used, cycle through palette
-            if (!assignedColor) {
-              assignedColor = palette[usedColors.size % palette.length];
-            }
-            colorMap[profile.id] = assignedColor;
+          setFriendUsernames((prev) => {
+            const prevJson = JSON.stringify(prev);
+            const nextJson = JSON.stringify(usernameMap);
+            return prevJson === nextJson ? prev : usernameMap;
           });
-          
-          setFriendUsernames(usernameMap);
-          setFriendColors(colorMap);
+
+          setFriendColors((existingColorMap) => {
+            const colorMap = { ...existingColorMap };
+            const usedColors = new Set(Object.values(existingColorMap));
+
+            (profilesData || []).forEach((profile) => {
+              if (colorMap[profile.id]) {
+                return;
+              }
+
+              let assignedColor = null;
+              for (const color of palette) {
+                if (!usedColors.has(color)) {
+                  assignedColor = color;
+                  usedColors.add(color);
+                  break;
+                }
+              }
+              if (!assignedColor) {
+                assignedColor = palette[usedColors.size % palette.length];
+              }
+              colorMap[profile.id] = assignedColor;
+            });
+
+            const prevJson = JSON.stringify(existingColorMap);
+            const nextJson = JSON.stringify(colorMap);
+            return prevJson === nextJson ? existingColorMap : colorMap;
+          });
         }
       } catch (err) {
         console.error("Unexpected error loading friends pins:", err);
+        friendsPinsDataSigRef.current = "";
         setFriendsPins([]);
         setFriendUsernames({});
         setFriendProfiles([]);

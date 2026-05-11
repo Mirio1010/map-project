@@ -115,9 +115,13 @@ function Map({ pins, friendsPins = [], friendUsernames = {}, friendColors = {}, 
           const pinIcon = createPinIcon(pin.category || "", {
             isScheduled,
           });
+          const markerKey =
+            pin.id != null && pin.id !== ""
+              ? `user-pin-${pin.id}`
+              : `user-pin-idx-${index}`;
           return (
             <Marker
-              key={`user-${index}`}
+              key={markerKey}
               position={[pin.lat, pin.lng]}
               icon={pinIcon}
             >
@@ -252,9 +256,14 @@ function Map({ pins, friendsPins = [], friendUsernames = {}, friendColors = {}, 
             friendScheduled,
           );
 
+          const markerKey =
+            pin.id != null && pin.id !== ""
+              ? `friend-pin-${pin.id}`
+              : `friend-pin-idx-${index}`;
+
           return (
             <Marker
-              key={`friend-${index}`}
+              key={markerKey}
               position={[pin.lat, pin.lng]}
               icon={friendPinIcon}
               eventHandlers={{
