@@ -53,7 +53,8 @@ CREATE TABLE locations (
   lat DOUBLE PRECISION,
   lng DOUBLE PRECISION,
   rating INTEGER DEFAULT 5,
-  expires_at TIMESTAMP WITH TIME ZONE, -- NULL for permanent pins, timestamp for temporary pins
+  expires_at TIMESTAMP WITH TIME ZONE, -- NULL for permanent pins, legacy “delete after” temporary pins
+  schedule JSONB, -- Recurring visibility window (nullable). See note below.
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -159,6 +160,7 @@ CREATE POLICY "Profile pictures are publicly readable"
 
 ## Notes
 
+- **`profiles.username`:** Enforce uniqueness in the database with the migration in **Unique `username` (one account per handle)** above (recommended for production).
 - The `friends` table uses a UNIQUE constraint on `(user_id, friend_id)` to prevent duplicate friendships
 - Friend relationships are one-way: if User A adds User B, only A can see B's pins (unless you want bidirectional, which would require additional logic)
 - The `profiles` table should have an `email` column that matches the auth.users email for friend lookup
@@ -183,6 +185,43 @@ SET email = (
 WHERE email IS NULL;
 ```
 
+### Unique `username` (one account per handle)
+
+The app can **check** availability in `SignUp.jsx`, but Postgres does not enforce uniqueness until you add it. Do this **once** on your Supabase project.
+
+**Where:** [Supabase Dashboard](https://supabase.com/dashboard) → your project → **SQL Editor** → **New query** → paste → **Run**.
+
+**1. See if you already have duplicates** (fix these before step 2 or the index will fail):
+
+```sql
+-- Rows sharing the same username (after normalizing to lowercase for comparison)
+SELECT lower(btrim(username)) AS normalized_username, count(*) AS cnt, array_agg(id::text) AS profile_ids
+FROM profiles
+WHERE username IS NOT NULL AND btrim(username) <> ''
+GROUP BY 1
+HAVING count(*) > 1;
+```
+
+If this returns rows, update or clear duplicate `username` values until the query returns **no rows**. (The client stores usernames lowercase; matching DB values keeps checks consistent.)
+
+**2. Create a unique index** (idempotent; enforces uniqueness for non-empty usernames; multiple `NULL` usernames are still allowed, which Postgres treats as unknown/not equal):
+
+```sql
+CREATE UNIQUE INDEX IF NOT EXISTS profiles_username_unique
+ON public.profiles (username)
+WHERE username IS NOT NULL AND btrim(username) <> '';
+```
+
+**3. Confirm** (optional):
+
+```sql
+SELECT indexname, indexdef
+FROM pg_indexes
+WHERE tablename = 'profiles' AND indexname = 'profiles_username_unique';
+```
+
+After this, a second signup or profile insert with the same username as another row will get a **Postgres unique-violation error** (`23505`). The app should treat that like a “taken” username on insert if you add handling later; signup **availability** already reduces collisions.
+
 ## Updating Existing `locations` Table
 
 If your `locations` table doesn't have an `expires_at` column (for temporary pins feature), add it:
@@ -195,4 +234,28 @@ ADD COLUMN IF NOT EXISTS expires_at TIMESTAMP WITH TIME ZONE;
 -- Optional: Create an index for faster queries on expired pins
 CREATE INDEX IF NOT EXISTS idx_locations_expires_at ON locations(expires_at) WHERE expires_at IS NOT NULL;
 ```
+
+### Recurring `schedule` JSONB (manual migration)
+
+Run this in the SQL editor on existing projects so “scheduled” pins can be stored without breaking older rows:
+
+```sql
+ALTER TABLE locations ADD COLUMN IF NOT EXISTS schedule JSONB;
+```
+
+**Shape** (stored per row when the pin uses the scheduled visibility model):
+
+```json
+{
+  "startTime": "14:00",
+  "endTime": "18:00",
+  "startDate": "2025-05-01",
+  "endDate": "2025-05-31",
+  "daysOfWeek": [5]
+}
+```
+
+- `daysOfWeek` uses JavaScript’s convention (`0 = Sunday` … `6 = Saturday`).
+- Pins with **`schedule`** set are shown only during matching local windows; they are hidden outside the window but not deleted.
+- **`expires_at`** remains for legacy rows only: Supabase/client cleanup continues to delete rows that used the old one-shot expiry behaviour. New scheduled pins leave `expires_at` null.
 

@@ -1,5 +1,8 @@
 import React from "react";
 import { categories } from "../utils/pinCategories";
+import { isScheduledPinActive, formatNextActiveLine } from "../utils/scheduleUtils";
+import { profileDisplayName } from "../utils/usernameUtils";
+import PinResolvedAddress from "./PinResolvedAddress";
 import "../styles/explore.css";
 
 function Sidebar({ 
@@ -52,21 +55,6 @@ function Sidebar({
     )
   }
 
-  const formatAddress = (address, fallback) => {
-    if (!address && fallback) return fallback;
-    if (!address) return "Address unavailable";
-    const parts = address.split(",").map((p) => p.trim()).filter(Boolean);
-    
-    // Prioritize street address and city (first 2 parts)
-    if (parts.length >= 2) {
-      const short = `${parts[0]}, ${parts[1]}`;
-      return short.length > 50 ? `${short.slice(0, 47)}…` : short;
-    }
-    
-    // Single part address - truncate if too long
-    return address.length > 50 ? `${address.slice(0, 47)}…` : address;
-  };
-
   const formatExpirationTime = (expiresAt) => {
     if (!expiresAt) return null;
     const expires = new Date(expiresAt);
@@ -89,15 +77,22 @@ function Sidebar({
 
   return (
     <section className="left-pane">
-      <button id="add-spot-btn" className="add-spot-btn" onClick={onAddSpot}>
+      <button
+        id="add-spot-btn"
+        data-tutorial="add-spot"
+        className="add-spot-btn"
+        onClick={onAddSpot}
+      >
         + Add Spot
       </button>
-      
-      {/* Controls Section */}
+
+      {/* Sort / Top 10 shortcuts + Filters entry mirror the onboarding spotlight group */}
+      <div data-tutorial="rating-sort-filters" style={{ marginBottom: "1rem" }}>
+      {/* Locate + Top Ten row */}
       <div style={{
-        marginBottom: "1rem", 
-        display: "flex", 
-        gap: "0.5rem", 
+        marginBottom: "0.65rem",
+        display: "flex",
+        gap: "0.5rem",
         flexWrap: "wrap"}}>
         <button id="btn-locate" onClick={onLocate}>
           📍 Locate me
@@ -118,6 +113,30 @@ function Sidebar({
         >
           {showTop10 ? "Showing Top 10" : "Show Top 10"}
         </button>
+      </div>
+
+      {/* Primary entry point into deep sort + rating controls */}
+      <div style={{ marginBottom: "1rem", display: "flex", justifyContent: "flex-end" }}>
+        <button
+          className="filter-button"
+          style={{ width: "100%", justifyContent: "center" }}
+          onClick={() => setIsFilterOpen(!isFilterOpen)}
+        >
+          <span className="filter-icon">🔍</span>
+          Filters
+          {(selectedCategories.length > 0 ||
+            minRating > 0 ||
+            maxRating < 5 ||
+            selectedFriend) && (
+              <span className="filter-badge">
+                {selectedCategories.length +
+                  (minRating > 0 ? 1 : 0) +
+                  (maxRating < 5 ? 1 : 0) +
+                  (selectedFriend ? 1 : 0)}
+              </span>
+            )}
+        </button>
+      </div>
       </div>
 
       {/* Pin Visibility Toggles */}
@@ -144,6 +163,7 @@ function Sidebar({
           {showMyPins ? "Hide My Pins" : "Show My Pins"}
         </button>
         <button
+          data-tutorial="friends-filter-toggle"
           onClick={() => setShowFriendsPins(!showFriendsPins)}
           style={{
             flex: 1,
@@ -206,7 +226,7 @@ function Sidebar({
                 <option value="">All Friends ({friendProfiles.length})</option>
                 {friendProfiles.map((friend, idx) => (
                   <option key={friend.id} value={friend.id}>
-                    {friend.username || friend.email || `Friend ${idx + 1}`}
+                    {profileDisplayName(friend, friend.email?.split("@")[0] || `Friend ${idx + 1}`)}
                   </option>
                 ))}
               </select>
@@ -239,8 +259,8 @@ function Sidebar({
             </div>
           )}
 
-          {/* Category filter */}
-          <div className="filter-section">
+          {/* Category chips live inside their own onboarding anchor */}
+          <div className="filter-section" data-tutorial="category-filter">
             <label className="filter-label">Categories</label>
             <div className="category-checkboxes">
               {categories.map((category) => (
@@ -298,28 +318,6 @@ function Sidebar({
         </div>
       )}
 
-      <div style={{ marginBottom: "1rem", display: "flex", justifyContent: "flex-end" }}>
-        <button
-          className="filter-button"
-          style={{ width: "100%", justifyContent: "center" }}
-          onClick={() => setIsFilterOpen(!isFilterOpen)}
-        >
-          <span className="filter-icon">🔍</span>
-          Filters
-          {(selectedCategories.length > 0 ||
-            minRating > 0 ||
-            maxRating < 5 ||
-            selectedFriend) && (
-              <span className="filter-badge">
-                {selectedCategories.length +
-                  (minRating > 0 ? 1 : 0) +
-                  (maxRating < 5 ? 1 : 0) +
-                  (selectedFriend ? 1 : 0)}
-              </span>
-            )}
-        </button>
-      </div>
-
       {/* All Spots Section Header */}
       <div style={{ 
         marginTop: "1.5rem", 
@@ -340,14 +338,16 @@ function Sidebar({
 
       <div className="pin-cards" id="pin-cards">
         {/* User's own pins */}
-        {pins.map((pin, index) => {
+        {pins.map((pin) => {
           // Calculate the original index so we edit/delete the correct item
           const originalIndex = getOriginalIndex(pin);
-          
+          const scheduleOff =
+            pin.schedule && !isScheduledPinActive(pin.schedule);
+
           return (
             <article
               key={`my-${originalIndex}`} // Use originalIndex for stable keys
-              className="pin-card"
+              className={`pin-card${scheduleOff ? " pin-card--schedule-inactive" : ""}`}
               onClick={() => onZoom(pin.lat, pin.lng, originalIndex)}
               style={{ cursor: "pointer" }}
             >
@@ -401,6 +401,47 @@ function Sidebar({
                       {pin.name || "Untitled pin"}
                     </h3>
                   </div>
+
+                  {pin.schedule && isScheduledPinActive(pin.schedule) && (
+                    <div
+                      style={{
+                        marginTop: "4px",
+                        fontSize: "11px",
+                        color: "#6ee7b7",
+                        fontWeight: 600,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                      }}
+                    >
+                      <span
+                        style={{
+                          width: "7px",
+                          height: "7px",
+                          borderRadius: "50%",
+                          background: "#22c55e",
+                          display: "inline-block",
+                        }}
+                      />
+                      Active now
+                    </div>
+                  )}
+                  {scheduleOff && (
+                    <div style={{ marginTop: "6px" }}>
+                      <span className="schedule-inactive-badge">Inactive</span>
+                      {formatNextActiveLine(pin.schedule) ? (
+                        <div
+                          style={{
+                            marginTop: "4px",
+                            fontSize: "11px",
+                            color: "#9ca3af",
+                          }}
+                        >
+                          {formatNextActiveLine(pin.schedule)}
+                        </div>
+                      ) : null}
+                    </div>
+                  )}
                   
                   {/* DISPLAY RATING */}
                   <div style={{ marginTop: "2px" }}>
@@ -409,7 +450,10 @@ function Sidebar({
 
                   <div className="addr-row">
                     <span className="addr-chip address-chip">📍 Address</span>
-                    <p
+                    <PinResolvedAddress
+                      address={pin.address || pin.displayName}
+                      lat={pin.lat}
+                      lng={pin.lng}
                       className="addr address-text"
                       style={{
                         margin: "6px 0 0 0",
@@ -418,10 +462,7 @@ function Sidebar({
                         fontSize: "12px",
                         fontWeight: "500",
                       }}
-                      title={pin.address || pin.displayName}
-                    >
-                      {formatAddress(pin.address, pin.displayName)}
-                    </p>
+                    />
                   </div>
 
                   {pin.description && (
@@ -487,13 +528,15 @@ function Sidebar({
         })}
 
         {/* Friends' pins */}
-        {friendsPins.map((pin, index) => {
+        {friendsPins.map((pin, friendIdx) => {
           const friendName = friendUsernames[pin.user_id] || "Friend";
           const friendColor = friendColors[pin.user_id] || "var(--brand)";
+          const friendScheduleOff =
+            pin.schedule && !isScheduledPinActive(pin.schedule);
           return (
             <article
-              key={`friend-${pin.id || index}`}
-              className="pin-card friend-pin-card"
+              key={`friend-${pin.id || friendIdx}`}
+              className={`pin-card friend-pin-card${friendScheduleOff ? " pin-card--schedule-inactive" : ""}`}
               onClick={() => onZoom(pin.lat, pin.lng)}
               style={{ 
                 cursor: "pointer",
@@ -567,6 +610,35 @@ function Sidebar({
                   }}>
                     👥 {friendName}
                   </div>
+
+                  {pin.schedule && isScheduledPinActive(pin.schedule) && (
+                    <div
+                      style={{
+                        marginTop: "4px",
+                        fontSize: "11px",
+                        color: "#6ee7b7",
+                        fontWeight: 600,
+                      }}
+                    >
+                      Active now
+                    </div>
+                  )}
+                  {friendScheduleOff && (
+                    <div style={{ marginTop: "6px" }}>
+                      <span className="schedule-inactive-badge">Inactive</span>
+                      {formatNextActiveLine(pin.schedule) ? (
+                        <div
+                          style={{
+                            marginTop: "4px",
+                            fontSize: "11px",
+                            color: "#9ca3af",
+                          }}
+                        >
+                          {formatNextActiveLine(pin.schedule)}
+                        </div>
+                      ) : null}
+                    </div>
+                  )}
                   
                   {/* DISPLAY RATING */}
                   <div style={{ marginTop: "2px" }}>
@@ -575,7 +647,10 @@ function Sidebar({
 
                   <div className="addr-row">
                     <span className="addr-chip address-chip">📍 Address</span>
-                    <p
+                    <PinResolvedAddress
+                      address={pin.address || pin.displayName}
+                      lat={pin.lat}
+                      lng={pin.lng}
                       className="addr address-text"
                       style={{
                         margin: "6px 0 0 0",
@@ -584,10 +659,7 @@ function Sidebar({
                         fontSize: "12px",
                         fontWeight: "500",
                       }}
-                      title={pin.address || pin.displayName}
-                    >
-                      {formatAddress(pin.address, pin.displayName)}
-                    </p>
+                    />
                   </div>
 
                   {pin.description && (

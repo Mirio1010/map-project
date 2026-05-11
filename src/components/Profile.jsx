@@ -2,6 +2,14 @@ import React, { useState, useEffect, useMemo } from "react";
 import { supabase } from "../utils/supabaseClient";
 import { categories } from "../utils/pinCategories";
 import FriendsSection from "./FriendsSection";
+import PinResolvedAddress from "./PinResolvedAddress";
+import { DEV_ACCOUNTS, addDevAccountFriend } from "../utils/devAccounts";
+import {
+  profileDisplayName,
+  sanitizeUsernameForStorage,
+  isValidSignupUsernameFormat,
+} from "../utils/usernameUtils";
+import { isScheduledPinActive, formatNextActiveLine } from "../utils/scheduleUtils";
 import "../styles/style.css";
 import "../styles/explore.css";
 import "../styles/profile.css";
@@ -11,29 +19,46 @@ import "../styles/friends.css";
  * Profile Component
  * 
  * Displays user profile information, settings, and the user's own pinned places.
- * Includes sections for profile picture, email, username, and a scrollable list
+ * Includes sections for profile picture, email, optional one-time username setup, and a scrollable list
  * of places the user has pinned, sorted by rating.
  */
-function Profile() {
+function Profile({
+  onUsernameSaved,
+  onSpotyTeamFriendAdded,
+  friendsDataVersion = 0,
+}) {
   // State for user profile data
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [email, setEmail] = useState("");
-  const [username, setUsername] = useState("");
   const [profilePicture, setProfilePicture] = useState(null);
-  const [isEditingUsername, setIsEditingUsername] = useState(false);
   const [isUploadingPicture, setIsUploadingPicture] = useState(false);
 
   // State for user's pins
   const [userPins, setUserPins] = useState([]);
 
   // State for friends list (friend IDs)
-  const [friendIds, setFriendIds] = useState([]);
+  const [, setFriendIds] = useState([]);
   const [friendProfiles, setFriendProfiles] = useState([]); // Store friend profiles
+  /** Avoid flashing username UI before profiles row is loaded */
+  const [profileReady, setProfileReady] = useState(false);
 
   // State for friends section visibility (dropdown)
   const [isFriendsOpen, setIsFriendsOpen] = useState(false);
   const [isViewFriendsOpen, setIsViewFriendsOpen] = useState(false);
+
+  // One-time username (legacy accounts with null username)
+  const [usernameDraft, setUsernameDraft] = useState("");
+  const [usernameAvailability, setUsernameAvailability] = useState("idle");
+  const [checkingUsername, setCheckingUsername] = useState(false);
+  const [savingUsername, setSavingUsername] = useState(false);
+  const [usernameSaveMessage, setUsernameSaveMessage] = useState(null);
+  const [usernameToast, setUsernameToast] = useState(null);
+
+  const spotyTeamId = DEV_ACCOUNTS[0]?.id;
+  const [followingSpotyTeam, setFollowingSpotyTeam] = useState(false);
+  const [spotyTeamBusy, setSpotyTeamBusy] = useState(false);
+  const [spotyTeamLine, setSpotyTeamLine] = useState(null);
 
   // State for filter modal visibility
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -75,7 +100,6 @@ function Profile() {
           console.error("Error loading profile:", profileError.message);
         } else if (profileData) {
           setProfile(profileData);
-          setUsername(profileData.username || "");
           setProfilePicture(profileData.profile_picture || null);
         }
 
@@ -119,34 +143,119 @@ function Profile() {
         }
       } catch (err) {
         console.error("Unexpected error loading profile:", err);
+      } finally {
+        setProfileReady(true);
       }
     };
 
     loadProfile();
   }, []);
 
-  /**
-   * Handle username update
-   */
-  const handleUpdateUsername = async () => {
-    if (!user || !username.trim()) return;
+  useEffect(() => {
+    if (!usernameToast) return undefined;
+    const id = window.setTimeout(() => setUsernameToast(null), 5000);
+    return () => window.clearTimeout(id);
+  }, [usernameToast]);
 
+  useEffect(() => {
+    if (!user?.id || !spotyTeamId) {
+      setFollowingSpotyTeam(false);
+      return undefined;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("friends")
+        .select("friend_id")
+        .eq("user_id", user.id)
+        .eq("friend_id", spotyTeamId)
+        .maybeSingle();
+      if (!cancelled) setFollowingSpotyTeam(Boolean(data));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id, spotyTeamId, friendsDataVersion]);
+
+  const handleAddSpotyTeamProfile = async () => {
+    if (!user?.id || followingSpotyTeam) return;
+    setSpotyTeamBusy(true);
+    setSpotyTeamLine(null);
     try {
-      const { error } = await supabase
+      const result = await addDevAccountFriend(user.id);
+      if (result.ok) {
+        setSpotyTeamLine("Added! Their spots will now appear on your map.");
+        setFollowingSpotyTeam(true);
+        onSpotyTeamFriendAdded?.();
+      }
+    } finally {
+      setSpotyTeamBusy(false);
+    }
+  };
+
+  const hasUsernameSet = Boolean(
+    profile?.username != null && String(profile.username).trim() !== "",
+  );
+
+  const handleCheckUsernameAvailability = async () => {
+    setUsernameAvailability("idle");
+    const sanitized = sanitizeUsernameForStorage(usernameDraft.trim());
+    if (sanitized.length < 3) return;
+    setCheckingUsername(true);
+    try {
+      const { data, error: qError } = await supabase
         .from("profiles")
-        .update({ username: username.trim() })
+        .select("id")
+        .eq("username", sanitized)
+        .maybeSingle();
+
+      if (qError) {
+        console.error("Username check failed:", qError.message);
+        setUsernameAvailability("idle");
+        return;
+      }
+      if (!data || data.id === user?.id) {
+        setUsernameAvailability("available");
+      } else {
+        setUsernameAvailability("taken");
+      }
+    } finally {
+      setCheckingUsername(false);
+    }
+  };
+
+  const handleSaveUsername = async () => {
+    setUsernameSaveMessage(null);
+    const trimmed = usernameDraft.trim();
+    if (!trimmed) return;
+    if (!isValidSignupUsernameFormat(trimmed)) {
+      setUsernameSaveMessage(
+        "Username must be 3–20 characters and use only letters, numbers, underscores, or hyphens.",
+      );
+      return;
+    }
+    const sanitized = sanitizeUsernameForStorage(trimmed);
+    if (sanitized.length < 3 || usernameAvailability !== "available") return;
+
+    if (!user?.id) return;
+    setSavingUsername(true);
+    try {
+      const { error: upError } = await supabase
+        .from("profiles")
+        .update({ username: sanitized })
         .eq("id", user.id);
 
-      if (error) {
-        console.error("Error updating username:", error.message);
-        alert("Failed to update username. Please try again.");
-      } else {
-        setIsEditingUsername(false);
-        setProfile({ ...profile, username: username.trim() });
+      if (upError) {
+        console.error("Save username:", upError.message);
+        setUsernameSaveMessage("Could not save username. Try again.");
+        return;
       }
-    } catch (err) {
-      console.error("Unexpected error updating username:", err);
-      alert("Failed to update username. Please try again.");
+
+      setProfile((prev) => (prev ? { ...prev, username: sanitized } : prev));
+      setUsernameSaveMessage("Username set! This cannot be changed later.");
+      onUsernameSaved?.();
+    } finally {
+      setSavingUsername(false);
     }
   };
 
@@ -217,23 +326,6 @@ function Profile() {
     } finally {
       setIsUploadingPicture(false);
     }
-  };
-
-  /**
-   * Calculate distance between two coordinates using Haversine formula
-   */
-  const calculateDistance = (lat1, lon1, lat2, lon2) => {
-    const R = 6371; // Earth's radius in kilometers
-    const dLat = ((lat2 - lat1) * Math.PI) / 180;
-    const dLon = ((lon2 - lon1) * Math.PI) / 180;
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos((lat1 * Math.PI) / 180) *
-        Math.cos((lat2 * Math.PI) / 180) *
-        Math.sin(dLon / 2) *
-        Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
   };
 
   /**
@@ -336,7 +428,7 @@ function Profile() {
         <div className="profile-info-section">
           <div className="profile-header">
             <h1>My Profile</h1>
-            <div style={{ display: "flex", gap: "0.75rem" }}>
+            <div className="profile-header-actions">
               <button
                 className="friends-toggle-button"
                 onClick={() => setIsViewFriendsOpen(!isViewFriendsOpen)}
@@ -361,12 +453,32 @@ function Profile() {
                   ▼
                 </span>
               </button>
+              <button
+                type="button"
+                className={`friends-toggle-button${followingSpotyTeam ? " friends-toggle-button--muted" : ""}`}
+                onClick={handleAddSpotyTeamProfile}
+                disabled={spotyTeamBusy || followingSpotyTeam || !user?.id}
+                aria-label="Add Spoty Team"
+                title={
+                  followingSpotyTeam
+                    ? "You already follow Spoty Team"
+                    : "Follow Spoty Team on the map"
+                }
+              >
+                <span className="friends-icon">📍</span>
+                {followingSpotyTeam ? "Already following ✓" : "Add Spoty Team"}
+              </button>
             </div>
           </div>
+          {spotyTeamLine ? (
+            <p className="profile-spoty-team-msg" role="status">
+              {spotyTeamLine}
+            </p>
+          ) : null}
 
           {/* Profile Picture Section */}
           <div className="profile-picture-section">
-            <div className="profile-picture-container">
+            <div className="profile-picture-container" data-tutorial="profile-avatar">
               {profilePicture ? (
                 <img
                   src={profilePicture}
@@ -400,39 +512,88 @@ function Profile() {
 
             <div className="profile-detail-item">
               <label>Username</label>
-              {isEditingUsername ? (
-                <div className="username-edit">
-                  <input
-                    type="text"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    className="username-input"
-                  />
+              {!profileReady ? (
+                <p style={{ opacity: 0.7 }}>Loading…</p>
+              ) : hasUsernameSet ? (
+                <>
+                  <p>{profileDisplayName(profile, "User")}</p>
                   <button
-                    onClick={handleUpdateUsername}
-                    className="save-username-button"
+                    type="button"
+                    className="profile-username-locked-btn"
+                    aria-disabled="true"
+                    onClick={() =>
+                      setUsernameToast(
+                        "Your username has already been created. Username changes will be available in a future update.",
+                      )
+                    }
                   >
-                    Save
+                    Username already set
                   </button>
-                  <button
-                    onClick={() => {
-                      setIsEditingUsername(false);
-                      setUsername(profile?.username || "");
-                    }}
-                    className="cancel-username-button"
-                  >
-                    Cancel
-                  </button>
-                </div>
+                  {usernameToast ? (
+                    <p className="profile-username-toast" role="status">
+                      {usernameToast}
+                    </p>
+                  ) : null}
+                </>
               ) : (
-                <div className="username-display">
-                  <p>{username || "Not set"}</p>
+                <div className="profile-username-setup">
+                  <p className="profile-username-helper">
+                    3–20 characters. Letters, numbers, _ and - only. Cannot be changed later.
+                  </p>
+                  <div className="profile-username-input-row">
+                    <input
+                      type="text"
+                      autoComplete="username"
+                      value={usernameDraft}
+                      onChange={(e) => {
+                        setUsernameDraft(e.target.value);
+                        setUsernameAvailability("idle");
+                        setUsernameSaveMessage(null);
+                      }}
+                      placeholder="Choose a username"
+                    />
+                    <button
+                      type="button"
+                      className="profile-username-check-btn"
+                      onClick={handleCheckUsernameAvailability}
+                      disabled={
+                        checkingUsername ||
+                        sanitizeUsernameForStorage(usernameDraft.trim()).length < 3
+                      }
+                    >
+                      {checkingUsername ? "Checking…" : "Check availability"}
+                    </button>
+                  </div>
+                  {usernameAvailability === "available" ? (
+                    <p className="profile-username-available">✓ Available</p>
+                  ) : null}
+                  {usernameAvailability === "taken" ? (
+                    <p className="profile-username-taken">✗ Taken</p>
+                  ) : null}
                   <button
-                    onClick={() => setIsEditingUsername(true)}
-                    className="edit-username-button"
+                    type="button"
+                    className="profile-username-save-btn"
+                    onClick={handleSaveUsername}
+                    disabled={
+                      savingUsername ||
+                      usernameAvailability !== "available" ||
+                      sanitizeUsernameForStorage(usernameDraft.trim()).length < 3
+                    }
                   >
-                    Edit
+                    {savingUsername ? "Saving…" : "Save Username"}
                   </button>
+                  {usernameSaveMessage ? (
+                    <p
+                      className={
+                        usernameSaveMessage.startsWith("Username set!")
+                          ? "profile-username-success"
+                          : "profile-username-taken"
+                      }
+                      role="status"
+                    >
+                      {usernameSaveMessage}
+                    </p>
+                  ) : null}
                 </div>
               )}
             </div>
@@ -477,7 +638,7 @@ function Profile() {
                         {friend.profile_picture ? (
                           <img
                             src={friend.profile_picture}
-                            alt={friend.username || friend.email}
+                            alt={profileDisplayName(friend, "Friend")}
                             style={{
                               width: "48px",
                               height: "48px",
@@ -503,7 +664,7 @@ function Profile() {
                         )}
                         <div style={{ flex: 1 }}>
                           <p style={{ margin: 0, fontWeight: "600", color: "var(--muted)" }}>
-                            {friend.username || "No username"}
+                            {profileDisplayName(friend, "User")}
                           </p>
                           <p style={{ margin: "4px 0 0 0", fontSize: "0.875rem", color: "var(--muted)", opacity: 0.7 }}>
                             {friend.email}
@@ -664,8 +825,14 @@ function Profile() {
                 </button>
               </div>
             ) : (
-              filteredAndSortedPlaces.map((place, index) => (
-                <div key={place.id || index} className="place-card">
+              filteredAndSortedPlaces.map((place, index) => {
+                const scheduleOff =
+                  place.schedule && !isScheduledPinActive(place.schedule);
+                return (
+                <div
+                  key={place.id || index}
+                  className={`place-card${scheduleOff ? " pin-card--schedule-inactive" : ""}`}
+                >
                   <div className="place-card-image">
                     {place.images && place.images.length > 0 ? (
                       <img
@@ -694,8 +861,33 @@ function Profile() {
                       {renderStars(place.rating)}
                     </div>
 
-                    {place.address && (
-                      <p className="place-card-address">📍 {place.address}</p>
+                    {place.schedule && isScheduledPinActive(place.schedule) && (
+                      <p className="profile-place-schedule profile-place-schedule--active">
+                        Active now
+                      </p>
+                    )}
+                    {scheduleOff && (
+                      <div className="profile-place-inactive-block">
+                        <span className="schedule-inactive-badge">Inactive</span>
+                        {formatNextActiveLine(place.schedule) ? (
+                          <p className="profile-place-next-active">
+                            {formatNextActiveLine(place.schedule)}
+                          </p>
+                        ) : null}
+                      </div>
+                    )}
+
+                    {(place.address || (place.lat != null && place.lng != null)) && (
+                      <div className="place-card-address">
+                        <span className="place-card-chip address-chip">📍 Address</span>
+                        <PinResolvedAddress
+                          as="span"
+                          address={place.address}
+                          lat={place.lat}
+                          lng={place.lng}
+                          className="place-card-address-text"
+                        />
+                      </div>
                     )}
 
                     {place.description && (
@@ -716,7 +908,8 @@ function Profile() {
                     </div>
                   </div>
                 </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>

@@ -1,34 +1,43 @@
 import "../styles/style.css";
 import LogoutButton from "./LogoutButton";
+import { GraduationCap } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "../utils/supabaseClient";
 
 
 
-function Header({ onToggleSidebar, activeTab, onTabChange }) {
+function Header({
+  onToggleSidebar,
+  activeTab,
+  onTabChange,
+  onOpenTutorialReplay,
+  profileRefreshKey = 0,
+}) {
   const tabs = ["home", "explore", "profile", "about"];
-  const [username, setUsername] = useState("");
+  const [displayName, setDisplayName] = useState("");
 
-    useEffect(() => {
-      const loadProfile = async () => {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (!user) return;
+  useEffect(() => {
+    const loadProfile = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
 
-        const { data: profile, error } = await supabase
-          .from("profiles")
-          .select("username")
-          .eq("id", user.id)
-          .single();
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("username, email")
+        .eq("id", user.id)
+        .single();
 
-        if (profile) {
-          setUsername(profile.username);
-        }
-      };
+      if (profile) {
+        const name =
+          profile.username || profile.email?.split("@")[0] || "";
+        setDisplayName(name);
+      }
+    };
 
-      loadProfile();
-    }, []);
+    loadProfile();
+  }, [profileRefreshKey]);
 
   const handleTabClick = (tab) => {
     onTabChange(tab);
@@ -65,6 +74,10 @@ function Header({ onToggleSidebar, activeTab, onTabChange }) {
                 role="tab"
                 aria-selected={activeTab === tab}
                 onClick={() => handleTabClick(tab)}
+                {...(tab === "explore"
+                  ? { "data-tutorial": "explore-tab" }
+                  : {})}
+                {...(tab === "profile" ? { "data-tutorial": "profile-tab" } : {})}
               >
                 {tab.charAt(0).toUpperCase() + tab.slice(1)}
               </button>
@@ -72,12 +85,22 @@ function Header({ onToggleSidebar, activeTab, onTabChange }) {
           ))}
         </ul>
 
-        {/* Username display */}
+        {/* Display name (username preferred; email prefix fallback) */}
         <div
           style={{ color: "white", marginLeft: "auto", marginRight: "1rem" }}
         >
-          {username && `Hello, ${username}`}
+          {displayName && `Hello, ${displayName}`}
         </div>
+        <button
+          type="button"
+          className="tutorial-replay-header-btn"
+          onClick={() => onOpenTutorialReplay?.()}
+          title="Replay tutorial"
+        >
+          <GraduationCap aria-hidden strokeWidth={2} />
+          <span>Tutorial</span>
+        </button>
+
         {/* Logout button on the far right */}
         <LogoutButton />
       </nav>

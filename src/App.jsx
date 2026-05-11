@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import Header from "./components/Header";
 import Sidebar from "./components/sidebar";
 import Map from "./components/map";
@@ -7,8 +7,10 @@ import Footer from "./components/Footer";
 import Explore from "./components/Explore";
 import Profile from "./components/Profile";
 import About from "./components/About";
+import TutorialOverlay from "./components/TutorialOverlay";
 import { supabase } from "./utils/supabaseClient";
-
+import { isScheduledPinActive } from "./utils/scheduleUtils";
+import { profileDisplayName } from "./utils/usernameUtils";
 
 import "./styles/style.css";
 import "./styles/cards.css";
@@ -22,6 +24,14 @@ function App() {
   const [initialPin, setInitialPin] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState("home");
+  /** Supabase uid for onboarding localStorage namespaces */
+  const [userIdForUi, setUserIdForUi] = useState(null);
+  /** Walkthrough spotlight controlled here so Header can reopen it anytime */
+  const [tutorialOpen, setTutorialOpen] = useState(false);
+  /** Bumping this re-runs the friends pins + profile labels loader (e.g. after tutorial “Add Spoty Team”). */
+  const [friendsDataVersion, setFriendsDataVersion] = useState(0);
+  /** Bumped when Profile saves username so Header greeting reloads without refresh. */
+  const [headerProfileTick, setHeaderProfileTick] = useState(0);
 
   // --- NEW STATES for Sorting/Filtering ---
   const [showTop10, setShowTop10] = useState(false);
@@ -29,7 +39,8 @@ function App() {
 
   // --- STATES for Friends Pins ---
   const [friendsPins, setFriendsPins] = useState([]);
-  const [showFriendsPins, setShowFriendsPins] = useState(false);
+  /** Default on so friend markers load without an extra toggle click (map still respects user turning this off). */
+  const [showFriendsPins, setShowFriendsPins] = useState(true);
   const [friendProfiles, setFriendProfiles] = useState([]);
   const [showMyPins, setShowMyPins] = useState(true); // Toggle to show/hide user's own pins
   const [friendUsernames, setFriendUsernames] = useState({}); // Map of user_id to username
@@ -53,6 +64,43 @@ function App() {
   //     console.error("Could not load pins", e);
   //   }
   // }, []);
+
+  /** Tutorial completion flag per Supabase user id (supports legacy `"1"` writes). */
+  const tutorialStorageCompleted = useCallback((uid) => {
+    const key = `tutorial_done_${uid}`;
+    const raw = window.localStorage.getItem(key);
+    return raw === "true" || raw === "1";
+  }, []);
+
+  // Session must be resolved before tutorial storage keys use the real user id (avoid null/wrong key).
+  useEffect(() => {
+    const applyAuthUser = (user) => {
+      if (!user?.id) {
+        setUserIdForUi(null);
+        return;
+      }
+      const uid = user.id;
+      setUserIdForUi(uid);
+      const key = `tutorial_done_${uid}`;
+      const done = tutorialStorageCompleted(uid);
+      console.log("[tutorial] storage check", { key, done });
+      if (!done) {
+        setTutorialOpen(true);
+      }
+    };
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      applyAuthUser(session?.user ?? null);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      applyAuthUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, [tutorialStorageCompleted]);
 
   useEffect(() => {
     const loadPins = async () => {
@@ -86,12 +134,13 @@ function App() {
           return;
         }
 
-        // Filter out expired pins
+        // Drop only legacy expired pins — keep ALL of the user's pins (including inactive-on-schedule)
+        // so the sidebar and Profile stay editable. Map markers use a separate schedule filter.
         const now = new Date();
         const validPins = (data || []).filter((pin) => {
-          if (!pin.expires_at) return true; // Permanent pins
+          if (!pin.expires_at) return true;
           const expiresAt = new Date(pin.expires_at);
-          return expiresAt > now; // Only include if not expired
+          return expiresAt > now;
         });
 
         // Delete expired pins from database
@@ -120,6 +169,10 @@ function App() {
     };
 
     loadPins();
+  }, []);
+
+  const refreshFriendsPinsAndLabels = useCallback(() => {
+    setFriendsDataVersion((v) => v + 1);
   }, []);
 
   // Load friends pins and usernames
@@ -175,9 +228,9 @@ function App() {
         // Filter out expired pins
         const now = new Date();
         const validFriendsPins = (pinsData || []).filter((pin) => {
-          if (!pin.expires_at) return true; // Permanent pins
+          if (!pin.expires_at) return true;
           const expiresAt = new Date(pin.expires_at);
-          return expiresAt > now; // Only include if not expired
+          return expiresAt > now;
         });
 
         setFriendsPins(validFriendsPins);
@@ -193,7 +246,7 @@ function App() {
         } else {
           const usernameMap = {};
           (profilesData || []).forEach((profile) => {
-            usernameMap[profile.id] = profile.username || profile.email || "Unknown";
+            usernameMap[profile.id] = profileDisplayName(profile, "Unknown");
           });
           setFriendProfiles(profilesData || []);
 
@@ -257,7 +310,8 @@ function App() {
     };
 
     loadFriendsPins();
-  }, []);
+    // Depends on userIdForUi so we refetch after session hydrates (first tick can see no user).
+  }, [friendsDataVersion, userIdForUi]);
 
 
   // 2. save Pins (create or update)
@@ -352,7 +406,8 @@ const handleSavePin = async (newPin) => {
           lat: newPin.lat,
           lng: newPin.lng,
           rating: newPin.rating,
-          expires_at: newPin.expires_at || null,
+          expires_at: newPin.expires_at ?? null,
+          schedule: newPin.schedule ?? null,
         })
         .eq("id", newPin.id)
         .eq("user_id", user.id);
@@ -384,7 +439,8 @@ const handleSavePin = async (newPin) => {
           lat: newPin.lat,
           lng: newPin.lng,
           rating: newPin.rating,
-          expires_at: newPin.expires_at || null,
+          expires_at: newPin.expires_at ?? null,
+          schedule: newPin.schedule ?? null,
         })
         .select()
         .single();
@@ -436,29 +492,38 @@ const handleSavePin = async (newPin) => {
     setMapAction({ type: "LOCATE" });
   };
 
-  const filteredMyPins = useMemo(() => {
-    let filtered = [...pins];
+  /**
+   * Full list of the signed-in user's pins (after expiry cleanup only). Sidebar, Profile, and
+   * edit flows use this — scheduled “off” windows do not hide pins from management UI.
+   */
+  const allUserPins = pins;
 
-    // Category filter
+  /**
+   * Home-tab filters (category, rating, sort, top 10) applied to the user’s pins — still includes
+   * inactive scheduled pins so they remain visible and editable in the sidebar.
+   */
+  const filteredMyPins = useMemo(() => {
+    let filtered = [...allUserPins];
+
     if (selectedCategoriesHome.length > 0) {
       filtered = filtered.filter((pin) =>
-        selectedCategoriesHome.includes(pin.category)
+        selectedCategoriesHome.includes(pin.category),
       );
     }
 
-    // Rating filter
     filtered = filtered.filter((pin) => {
       const rating = pin.rating || 0;
       return rating >= minRatingHome && rating <= maxRatingHome;
     });
 
-    // Sorting - always sort by rating for Top 10
     filtered.sort((a, b) => {
       if (sortByHome === "rating" || showTop10) {
         return (b.rating || 0) - (a.rating || 0);
-      } else if (sortByHome === "name") {
+      }
+      if (sortByHome === "name") {
         return (a.name || "").toLowerCase().localeCompare((b.name || "").toLowerCase());
-      } else if (sortByHome === "newest") {
+      }
+      if (sortByHome === "newest") {
         return new Date(b.created_at || 0) - new Date(a.created_at || 0);
       }
       return 0;
@@ -469,48 +534,95 @@ const handleSavePin = async (newPin) => {
     }
 
     return filtered;
-  }, [pins, selectedCategoriesHome, minRatingHome, maxRatingHome, sortByHome, showTop10]);
+  }, [allUserPins, selectedCategoriesHome, minRatingHome, maxRatingHome, sortByHome, showTop10]);
 
+  /**
+   * Subset of filteredMyPins that passes the recurring schedule “active now” check — ONLY these
+   * render as markers on the map (inactive windows are hidden on the map, not in the sidebar).
+   */
+  const visibleMapPins = useMemo(
+    () =>
+      filteredMyPins.filter(
+        (pin) => !pin.schedule || isScheduledPinActive(pin.schedule),
+      ),
+    [filteredMyPins],
+  );
+
+  /**
+   * Friend pins after home filters — sidebar lists all; map uses visibleMapFriendsPins.
+   */
   const filteredFriendsPins = useMemo(() => {
     let filtered = [...friendsPins];
 
-    // Friend filter
     if (selectedFriendHome) {
       filtered = filtered.filter((pin) => pin.user_id === selectedFriendHome);
     }
 
-    // Category filter
     if (selectedCategoriesHome.length > 0) {
       filtered = filtered.filter((pin) =>
-        selectedCategoriesHome.includes(pin.category)
+        selectedCategoriesHome.includes(pin.category),
       );
     }
 
-    // Rating filter
     filtered = filtered.filter((pin) => {
       const rating = pin.rating || 0;
       return rating >= minRatingHome && rating <= maxRatingHome;
     });
 
-    // Sorting - always sort by rating for Top 10
     filtered.sort((a, b) => {
       if (sortByHome === "rating" || showTop10) {
         return (b.rating || 0) - (a.rating || 0);
-      } else if (sortByHome === "name") {
+      }
+      if (sortByHome === "name") {
         return (a.name || "").toLowerCase().localeCompare((b.name || "").toLowerCase());
-      } else if (sortByHome === "newest") {
+      }
+      if (sortByHome === "newest") {
         return new Date(b.created_at || 0) - new Date(a.created_at || 0);
       }
       return 0;
     });
 
-    // Apply Top 10 filter
     if (showTop10) {
       return filtered.slice(0, 10);
     }
 
     return filtered;
   }, [friendsPins, selectedFriendHome, selectedCategoriesHome, minRatingHome, maxRatingHome, sortByHome, showTop10]);
+
+  /**
+   * Friend pins that are allowed on the map (active schedule window or non-scheduled).
+   */
+  const visibleMapFriendsPins = useMemo(
+    () =>
+      filteredFriendsPins.filter(
+        (pin) => !pin.schedule || isScheduledPinActive(pin.schedule),
+      ),
+    [filteredFriendsPins],
+  );
+
+  /**
+   * Re-open the scripted tour from step 1. If it is already open, close then reopen so
+   * TutorialOverlay can reset via its isOpen edge (no remount from tab switches).
+   */
+  /** Replay opens the tour directly without clearing `tutorial_done_*` so auto-start stays off next login. */
+  const handleTutorialReplay = () => {
+    setTutorialOpen((wasOpen) => {
+      if (wasOpen) {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => setTutorialOpen(true));
+        });
+        return false;
+      }
+      return true;
+    });
+  };
+
+  /** Home tab scaffolding the first four onboarding beats expect (sidebar + filter drawer wide open) */
+  const prepareHomeTutorialView = () => {
+    setActiveTab("home");
+    setSidebarOpen(true);
+    setIsHomeFilterOpen(true);
+  };
 
   const renderContent = () => {
     switch (activeTab) {
@@ -521,7 +633,7 @@ const handleSavePin = async (newPin) => {
               <Sidebar
                 //  pass displayedPins for viewing, but originalPins for ID lookup
                 pins={showMyPins ? filteredMyPins : []} 
-                originalPins={pins}
+                originalPins={allUserPins}
                 friendsPins={showFriendsPins ? filteredFriendsPins : []}
                 friendUsernames={friendUsernames}
                 friendColors={friendColors}
@@ -573,8 +685,8 @@ const handleSavePin = async (newPin) => {
             </div>
 
             <Map
-              pins={showMyPins ? filteredMyPins : []} // Map also shows filtered pins
-              friendsPins={showFriendsPins ? filteredFriendsPins : []} // Friends pins when toggled on
+              pins={showMyPins ? visibleMapPins : []}
+              friendsPins={showFriendsPins ? visibleMapFriendsPins : []}
               friendUsernames={friendUsernames} // Map of user_id to username
               friendColors={friendColors}
               onClickOnMap={handleMapClick}
@@ -586,11 +698,20 @@ const handleSavePin = async (newPin) => {
       case "explore":
         return (
           <div className="explore-page-wrapper">
-            <Explore pins={pins} />
+            <Explore
+              onSpotyTeamFriendAdded={refreshFriendsPinsAndLabels}
+              friendsDataVersion={friendsDataVersion}
+            />
           </div>
         );
       case "profile":
-        return <Profile />;
+        return (
+          <Profile
+            onUsernameSaved={() => setHeaderProfileTick((t) => t + 1)}
+            onSpotyTeamFriendAdded={refreshFriendsPinsAndLabels}
+            friendsDataVersion={friendsDataVersion}
+          />
+        );
       case "about":
         return (
           <div className="about-page-wrapper">
@@ -608,6 +729,8 @@ const handleSavePin = async (newPin) => {
         onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
         activeTab={activeTab}
         onTabChange={setActiveTab}
+        onOpenTutorialReplay={handleTutorialReplay}
+        profileRefreshKey={headerProfileTick}
       />
 
       {renderContent()}
@@ -625,6 +748,19 @@ const handleSavePin = async (newPin) => {
           initialPin={initialPin}
         />
       )}
+
+      {/* Global overlays — stay mounted for signed-in users; visibility is driven only by isOpen */}
+      {userIdForUi ? (
+        <TutorialOverlay
+          isOpen={tutorialOpen}
+          userId={userIdForUi}
+          activeTab={activeTab}
+          onClose={() => setTutorialOpen(false)}
+          setActiveTab={setActiveTab}
+          prepareHomeTutorialView={prepareHomeTutorialView}
+          onSpotyTeamFriendAdded={refreshFriendsPinsAndLabels}
+        />
+      ) : null}
 
       <Footer />
     </div>

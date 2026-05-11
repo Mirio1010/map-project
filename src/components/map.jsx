@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { createPinIcon, createDefaultPinIcon, createColoredPinIcon, categoryPinMap, defaultPinUrl } from "../utils/pinCategories";
+import { createPinIcon, createDefaultPinIcon, createColoredPinIcon } from "../utils/pinCategories";
 
 const defaultPin = createDefaultPinIcon();
 
@@ -11,7 +11,7 @@ function ClickHandler({ onClickOnMap }) {
   return null;
 }
 
-function MapController({ mapAction, pins, sidebarOpen }) {
+function MapController({ mapAction, sidebarOpen }) {
   const map = useMap();
   useEffect(() => {
     if (!mapAction) return;
@@ -107,17 +107,14 @@ function Map({ pins, friendsPins = [], friendUsernames = {}, friendColors = {}, 
           attribution="&copy; OpenStreetMap contributors &copy; CARTO"
         />
         <ClickHandler onClickOnMap={onClickOnMap} />
-        <MapController
-          mapAction={mapAction}
-          pins={pins}
-          sidebarOpen={sidebarOpen}
-        />
+        <MapController mapAction={mapAction} sidebarOpen={sidebarOpen} />
 
         {/* User's own pins */}
         {pins.map((pin, index) => {
-          const pinIcon = pin.category
-            ? createPinIcon(pin.category)
-            : defaultPin;
+          const isScheduled = Boolean(pin.schedule);
+          const pinIcon = createPinIcon(pin.category || "", {
+            isScheduled,
+          });
           return (
             <Marker
               key={`user-${index}`}
@@ -246,11 +243,14 @@ function Map({ pins, friendsPins = [], friendUsernames = {}, friendColors = {}, 
         {friendsPins.map((pin, index) => {
           const friendName = friendUsernames[pin.user_id] || "Friend";
           const friendColor = friendColors[pin.user_id] || "#1fcece";
+          const friendScheduled = Boolean(pin.schedule);
 
           // Use colored pin icon that matches the friend's color
-          const friendPinIcon = pin.category
-            ? createColoredPinIcon(pin.category, friendColor)
-            : createColoredPinIcon(null, friendColor);
+          const friendPinIcon = createColoredPinIcon(
+            pin.category,
+            friendColor,
+            friendScheduled,
+          );
 
           return (
             <Marker
