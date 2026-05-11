@@ -1,6 +1,10 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { supabase } from "../utils/supabaseClient";
 import { categories } from "../utils/pinCategories";
+import { profileDisplayName } from "../utils/usernameUtils";
+import { addDevAccountFriend } from "../utils/devAccounts";
+import { isScheduledPinActive, formatNextActiveLine } from "../utils/scheduleUtils";
+import PinResolvedAddress from "./PinResolvedAddress";
 import "../styles/style.css";
 import "../styles/explore.css";
 
@@ -11,7 +15,7 @@ import "../styles/explore.css";
  * Places are sorted by rating by default, with filtering capabilities.
  * Each place is shown in a card with image, description, rating, and other information.
  */
-function Explore() {
+function Explore({ onSpotyTeamFriendAdded, friendsDataVersion = 0 }) {
   // State for pins from friends only
   const [friendsPins, setFriendsPins] = useState([]);
   const [currentUserId, setCurrentUserId] = useState(null);
@@ -33,13 +37,16 @@ function Explore() {
   
   // State for user's current location (for "near me" functionality)
   const [userLocation, setUserLocation] = useState(null);
-  const [locationError, setLocationError] = useState(null);
+  const [, setLocationError] = useState(null);
   
   // State for adding friend
   const [newFriendEmail, setNewFriendEmail] = useState("");
   const [isAddingFriend, setIsAddingFriend] = useState(false);
   const [addFriendError, setAddFriendError] = useState(null);
   const [addFriendSuccess, setAddFriendSuccess] = useState(null);
+
+  const [spotyTeamBusy, setSpotyTeamBusy] = useState(false);
+  const [spotyTeamLine, setSpotyTeamLine] = useState(null);
 
 
 
@@ -106,7 +113,7 @@ function Explore() {
             // Create username map
             const usernameMap = {};
             profilesData.forEach((profile) => {
-              usernameMap[profile.id] = profile.username || profile.email || "Unknown";
+              usernameMap[profile.id] = profileDisplayName(profile, "Unknown");
             });
             setFriendUsernames(usernameMap);
             
@@ -149,7 +156,7 @@ function Explore() {
     };
 
     loadUserAndFriends();
-  }, []);
+  }, [friendsDataVersion]);
 
   /**
    * Load pins from friends when friendIds changes
@@ -363,7 +370,7 @@ function Explore() {
       }
 
       // Check if already friends
-      const { data: existingFriend, error: checkError } = await supabase
+      const { data: existingFriend } = await supabase
         .from("friends")
         .select("id")
         .eq("user_id", currentUserId)
@@ -417,7 +424,7 @@ function Explore() {
             // Update username map
             const usernameMap = {};
             profilesData.forEach((profile) => {
-              usernameMap[profile.id] = profile.username || profile.email || "Unknown";
+              usernameMap[profile.id] = profileDisplayName(profile, "Unknown");
             });
             setFriendUsernames(usernameMap);
             
@@ -458,6 +465,26 @@ function Explore() {
       setAddFriendError("An unexpected error occurred. Please try again.");
     } finally {
       setIsAddingFriend(false);
+    }
+  };
+
+  const handleAddSpotyTeam = async () => {
+    if (!currentUserId) return;
+    setSpotyTeamBusy(true);
+    try {
+      const result = await addDevAccountFriend(currentUserId);
+      if (result.ok) {
+        setSpotyTeamLine(
+          result.duplicate
+            ? "You already follow Spoty Team ✓"
+            : "Added! Their spots will now appear on your map.",
+        );
+        onSpotyTeamFriendAdded?.();
+        return;
+      }
+      setSpotyTeamLine("Something went wrong. Try again later.");
+    } finally {
+      setSpotyTeamBusy(false);
     }
   };
 
@@ -521,25 +548,6 @@ function Explore() {
   };
 
   /**
-   * Make addresses shorter and more scannable while keeping the full value in a tooltip.
-   * Prioritizes street address and city, removes redundant parts.
-   */
-  const formatAddress = (address) => {
-    if (!address) return "";
-    const parts = address.split(",").map((p) => p.trim()).filter(Boolean);
-    
-    // If we have at least 2 parts, take street and city (first 2)
-    // If only 1 part, use it as is
-    if (parts.length >= 2) {
-      const short = `${parts[0]}, ${parts[1]}`;
-      return short.length > 50 ? `${short.slice(0, 47)}…` : short;
-    }
-    
-    // Single part address - truncate if too long
-    return address.length > 50 ? `${address.slice(0, 47)}…` : address;
-  };
-
-  /**
    * Format expiration time for display
    */
   const formatExpirationTime = (expiresAt) => {
@@ -563,7 +571,7 @@ function Explore() {
   };
 
   return (
-    <div className="explore-page-wrapper">
+    <div className="explore-page-wrapper" data-tutorial="explore-page">
       <div className="explore-container">
         {/* Header section with title and filter button */}
         <div className="explore-header">
@@ -600,6 +608,22 @@ function Explore() {
               ) : null}
             </button>
           </div>
+        </div>
+
+        <div className="explore-spoty-team-row">
+          <button
+            type="button"
+            className="explore-spoty-team-btn"
+            onClick={handleAddSpotyTeam}
+            disabled={spotyTeamBusy || !currentUserId}
+          >
+            {spotyTeamBusy ? "Adding…" : "Add Spoty Team"}
+          </button>
+          {spotyTeamLine ? (
+            <p className="explore-spoty-team-msg" role="status">
+              {spotyTeamLine}
+            </p>
+          ) : null}
         </div>
 
         {/* Add Friend Modal */}
@@ -712,7 +736,7 @@ function Explore() {
                   <option value="">All Friends ({friendProfiles.length})</option>
                   {friendProfiles.map((friend) => (
                     <option key={friend.id} value={friend.id}>
-                      {friend.username || friend.email}
+                      {profileDisplayName(friend, "User")}
                     </option>
                   ))}
                 </select>
@@ -836,8 +860,14 @@ function Explore() {
             </button>
           </div>
         ) : (
-            filteredAndSortedPlaces.map((place, index) => (
-              <div key={place.id || index} className="place-card">
+            filteredAndSortedPlaces.map((place, index) => {
+              const scheduleOff =
+                place.schedule && !isScheduledPinActive(place.schedule);
+              return (
+              <div
+                key={place.id || index}
+                className={`place-card${scheduleOff ? " pin-card--schedule-inactive" : ""}`}
+              >
                 {/* Place image */}
                 <div className="place-card-image">
                   {place.images && place.images.length > 0 ? (
@@ -889,16 +919,33 @@ function Explore() {
                     </div>
                   )}
 
+                  {place.schedule && isScheduledPinActive(place.schedule) && (
+                    <p style={{ margin: "6px 0 0 0", fontSize: "12px", color: "#6ee7b7", fontWeight: 600 }}>
+                      Active now
+                    </p>
+                  )}
+                  {scheduleOff && (
+                    <div style={{ marginTop: "6px" }}>
+                      <span className="schedule-inactive-badge">Inactive</span>
+                      {formatNextActiveLine(place.schedule) ? (
+                        <p style={{ margin: "6px 0 0 0", fontSize: "12px", color: "#9ca3af" }}>
+                          {formatNextActiveLine(place.schedule)}
+                        </p>
+                      ) : null}
+                    </div>
+                  )}
+
                   {/* Address */}
-                  {place.address && (
+                  {(place.address || (place.lat != null && place.lng != null)) && (
                     <div className="place-card-address">
                       <span className="place-card-chip address-chip">📍 Address</span>
-                      <span
+                      <PinResolvedAddress
+                        as="span"
+                        address={place.address}
+                        lat={place.lat}
+                        lng={place.lng}
                         className="place-card-address-text"
-                        title={place.address}
-                      >
-                        {formatAddress(place.address)}
-                      </span>
+                      />
                     </div>
                   )}
 
@@ -956,7 +1003,8 @@ function Explore() {
                   </div>
                 </div>
               </div>
-            ))
+              );
+            })
           )}
         </div>
       </div>

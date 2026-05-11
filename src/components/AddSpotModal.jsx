@@ -1,16 +1,39 @@
 import { useState, useEffect, useRef } from "react";
 import { categories } from "../utils/pinCategories";
+import { formatLocalISODate, parseTimeToMinutes } from "../utils/scheduleUtils";
+import { needsReverseGeocodeLookup, reverseGeocode } from "../utils/geocodeUtils";
+
+// Weekday pills follow Mon-first order while still storing JS weekday numbers for Supabase schedules
+const WEEKDAY_PILLS = [
+  { value: 1, label: "Mon" },
+  { value: 2, label: "Tue" },
+  { value: 3, label: "Wed" },
+  { value: 4, label: "Thu" },
+  { value: 5, label: "Fri" },
+  { value: 6, label: "Sat" },
+  { value: 0, label: "Sun" },
+];
+
+/**
+ * Seeds the default recurring window (today through ~30 days) for brand-new scheduled pins.
+ */
+function defaultRollingDateRangeStrings() {
+  const start = new Date();
+  const end = new Date();
+  end.setDate(end.getDate() + 30);
+  return {
+    startDate: formatLocalISODate(start),
+    endDate: formatLocalISODate(end),
+  };
+}
 
 function AddSpotModal({ isOpen, onClose, onSave, initialCoords, initialPin }) {
-  if (!isOpen) return null;
-
   // matching addByAddress.js form
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
   const [desc, setDesc] = useState("");
   const [images, setImages] = useState([]);
   const [coords, setCoords] = useState(null);
-  const [status, setStatus] = useState("");
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [category, setCategory] = useState("food-drinks");
@@ -19,15 +42,29 @@ function AddSpotModal({ isOpen, onClose, onSave, initialCoords, initialPin }) {
   const debounceTimerRef = useRef(null);
   //rating (Default to 5)
   const [rating, setRating] = useState(5);
-  // Temporary pin expiration
-  const [isTemporary, setIsTemporary] = useState(false);
-  const [expirationType, setExpirationType] = useState("hours"); // "hours", "days", "datetime"
-  const [expirationHours, setExpirationHours] = useState(24);
-  const [expirationDays, setExpirationDays] = useState(1);
-  const [expirationDateTime, setExpirationDateTime] = useState("");
+  /** User picks between always-on pins and the newer recurring schedule model */
+  const [pinVisibilityMode, setPinVisibilityMode] = useState("permanent");
+  const [schedStartTime, setSchedStartTime] = useState("14:00");
+  const [schedEndTime, setSchedEndTime] = useState("18:00");
+  const [schedStartDate, setSchedStartDate] = useState(
+    formatLocalISODate(new Date()),
+  );
+  const [schedEndDate, setSchedEndDate] = useState(
+    defaultRollingDateRangeStrings().endDate,
+  );
+  /** Weekday ints (Sun=0 … Sat=6) selected for recurrence */
+  const [schedDays, setSchedDays] = useState([1, 2, 3, 4, 5]);
+  /** Display-only resolved label when the stored value is empty or lat,lng — never written to DB */
+  const [resolvedAddressHint, setResolvedAddressHint] = useState(null);
 
+  /**
+   * When the drawer opens we either hydrate from Supabase edits or wipe to a fresh blank slate.
+   */
   useEffect(() => {
-    // If we're editing an existing pin, prefill fields from initialPin
+    if (!isOpen) return;
+
+    const range = defaultRollingDateRangeStrings();
+
     if (initialPin) {
       setName(initialPin.name || "");
       setAddress(initialPin.address || initialPin.displayName || "");
@@ -35,70 +72,83 @@ function AddSpotModal({ isOpen, onClose, onSave, initialCoords, initialPin }) {
       setImages(initialPin.images || []);
       setCoords({ lat: initialPin.lat, lng: initialPin.lng });
       setCategory(initialPin.category || "food-drinks");
-      //load existing rating
       setRating(initialPin.rating || 5);
-      // Load expiration settings
-      setIsTemporary(!!initialPin.expires_at);
-      if (initialPin.expires_at) {
-        const expiresAt = new Date(initialPin.expires_at);
-        const now = new Date();
-        const hoursUntilExpiry = Math.ceil((expiresAt - now) / (1000 * 60 * 60));
-        const daysUntilExpiry = Math.ceil((expiresAt - now) / (1000 * 60 * 60 * 24));
-        
-        if (daysUntilExpiry >= 1) {
-          setExpirationType("days");
-          setExpirationDays(Math.max(1, daysUntilExpiry));
-        } else {
-          setExpirationType("hours");
-          setExpirationHours(Math.max(1, hoursUntilExpiry));
-        }
-        // Set datetime for datetime picker
-        const localDateTime = new Date(expiresAt.getTime() - expiresAt.getTimezoneOffset() * 60000)
-          .toISOString()
-          .slice(0, 16);
-        setExpirationDateTime(localDateTime);
+
+      if (initialPin.schedule) {
+        const s = initialPin.schedule;
+        setPinVisibilityMode("scheduled");
+        setSchedStartTime(s.startTime || "14:00");
+        setSchedEndTime(s.endTime || "18:00");
+        setSchedStartDate(s.startDate || range.startDate);
+        setSchedEndDate(s.endDate || range.endDate);
+        setSchedDays(
+          Array.isArray(s.daysOfWeek) && s.daysOfWeek.length
+            ? [...s.daysOfWeek].sort((a, b) => a - b)
+            : [1, 2, 3, 4, 5],
+        );
+      } else {
+        setPinVisibilityMode("permanent");
+        setSchedStartTime("14:00");
+        setSchedEndTime("18:00");
+        setSchedStartDate(range.startDate);
+        setSchedEndDate(range.endDate);
+        setSchedDays([1, 2, 3, 4, 5]);
       }
       return;
     }
 
     if (initialCoords) {
       setCoords(initialCoords);
-      // run reverseGeocode here if you wanted the address name
       setAddress(
-        `${initialCoords.lat.toFixed(5)}, ${initialCoords.lng.toFixed(5)}`
+        `${initialCoords.lat.toFixed(5)}, ${initialCoords.lng.toFixed(5)}`,
       );
     } else {
       setCoords(null);
       setAddress("");
-      setRating(5);
-      setIsTemporary(false);
-      setExpirationType("hours");
-      setExpirationHours(24);
-      setExpirationDays(1);
-      setExpirationDateTime("");
     }
+    setName("");
+    setDesc("");
+    setImages([]);
+    setCategory("food-drinks");
+    setRating(5);
+    setPinVisibilityMode("permanent");
+    setSchedStartTime("14:00");
+    setSchedEndTime("18:00");
+    setSchedStartDate(range.startDate);
+    setSchedEndDate(range.endDate);
+    setSchedDays([1, 2, 3, 4, 5]);
   }, [initialCoords, initialPin, isOpen]);
 
-  // when initialPin changes (e.g. open editor), prefill
   useEffect(() => {
-    if (!isOpen) return;
-    if (initialPin) {
-      setName(initialPin.name || "");
-      setAddress(initialPin.address || initialPin.displayName || "");
-      setDesc(initialPin.description || "");
-      setImages(initialPin.images || []);
-      setCoords({ lat: initialPin.lat, lng: initialPin.lng });
-      setCategory(initialPin.category || "food-drinks");
-    } else {
-      // Reset category when opening new pin modal
-      setCategory("food-drinks");
-      setIsTemporary(false);
-      setExpirationType("hours");
-      setExpirationHours(24);
-      setExpirationDays(1);
-      setExpirationDateTime("");
+    if (!isOpen || coords == null || coords.lat == null || coords.lng == null) {
+      setResolvedAddressHint(null);
+      return undefined;
     }
-  }, [initialPin, isOpen]);
+    if (!needsReverseGeocodeLookup(address)) {
+      setResolvedAddressHint(null);
+      return undefined;
+    }
+    let cancelled = false;
+    (async () => {
+      const line = await reverseGeocode(coords.lat, coords.lng);
+      if (!cancelled) setResolvedAddressHint(line);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, coords, address]);
+
+  /**
+   * Flip weekdays on/off whenever someone taps one of the quick pills.
+   */
+  const toggleWeekday = (value) => {
+    setSchedDays((prev) => {
+      if (prev.includes(value)) {
+        return prev.filter((d) => d !== value).sort((a, b) => a - b);
+      }
+      return [...prev, value].sort((a, b) => a - b);
+    });
+  };
 
   // Fetch address suggestions from Nominatim with debounce, abort and simple cache
   const fetchAddressSuggestions = async (query) => {
@@ -119,7 +169,9 @@ function AddSpotModal({ isOpen, onClose, onSave, initialCoords, initialPin }) {
     if (abortControllerRef.current) {
       try {
         abortControllerRef.current.abort();
-      } catch (e) {}
+      } catch {
+        /* already settled */
+      }
       abortControllerRef.current = null;
     }
 
@@ -212,28 +264,44 @@ function AddSpotModal({ isOpen, onClose, onSave, initialCoords, initialPin }) {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    // Calculate expiration time if temporary
+    let schedulePayload = null;
     let expiresAt = null;
-    if (isTemporary) {
-      const expirationDate = new Date();
-      
-      if (expirationType === "datetime" && expirationDateTime) {
-        // Use specific date/time
-        expiresAt = new Date(expirationDateTime).toISOString();
-      } else if (expirationType === "days" && expirationDays > 0) {
-        // Add days
-        expirationDate.setDate(expirationDate.getDate() + expirationDays);
-        expiresAt = expirationDate.toISOString();
-      } else if (expirationType === "hours" && expirationHours > 0) {
-        // Add hours
-        expirationDate.setHours(expirationDate.getHours() + expirationHours);
-        expiresAt = expirationDate.toISOString();
+
+    if (pinVisibilityMode === "scheduled") {
+      if (schedDays.length === 0) {
+        alert("Pick at least one weekday for your scheduled pin.");
+        return;
+      }
+      const startMin = parseTimeToMinutes(schedStartTime);
+      const endMin = parseTimeToMinutes(schedEndTime);
+      if (Number.isNaN(startMin) || Number.isNaN(endMin) || startMin >= endMin) {
+        alert("End time needs to come after start time.");
+        return;
+      }
+      if (!schedStartDate || !schedEndDate || schedStartDate > schedEndDate) {
+        alert("Pick a valid date span (start on or before end).");
+        return;
+      }
+
+      schedulePayload = {
+        startTime: schedStartTime,
+        endTime: schedEndTime,
+        startDate: schedStartDate,
+        endDate: schedEndDate,
+        daysOfWeek: [...schedDays].sort((a, b) => a - b),
+      };
+      expiresAt = null;
+    } else {
+      schedulePayload = null;
+      if (initialPin && !initialPin.schedule && initialPin.expires_at) {
+        expiresAt = initialPin.expires_at;
+      } else {
+        expiresAt = null;
       }
     }
 
-    // create new pin object to save
     const newPin = {
-      ...(initialPin || {}), // ← IMPORTANT: keeps id, user_id, createdAt when editing
+      ...(initialPin || {}),
       name: name || "Untitled Spot",
       address: address,
       description: desc,
@@ -244,28 +312,29 @@ function AddSpotModal({ isOpen, onClose, onSave, initialCoords, initialPin }) {
       createdAt: initialPin?.createdAt || new Date().toISOString(),
       rating: parseInt(rating, 10),
       expires_at: expiresAt,
+      schedule: schedulePayload,
     };
 
-
     onSave(newPin);
-    // reset form fields
+    const range = defaultRollingDateRangeStrings();
     setName("");
     setAddress("");
     setDesc("");
     setImages([]);
     setCategory("food-drinks");
-    setStatus("");
     setRating(5);
-    setIsTemporary(false);
-    setExpirationType("hours");
-    setExpirationHours(24);
-    setExpirationDays(1);
-    setExpirationDateTime("");
+    setPinVisibilityMode("permanent");
+    setSchedStartTime("14:00");
+    setSchedEndTime("18:00");
+    setSchedStartDate(range.startDate);
+    setSchedEndDate(range.endDate);
+    setSchedDays([1, 2, 3, 4, 5]);
   };
 
-
-
-
+  /** Modal shell renders only while open so Leaflet/map clicks keep working quietly otherwise */
+  if (!isOpen) {
+    return null;
+  }
 
   return (
     <div
@@ -405,6 +474,17 @@ function AddSpotModal({ isOpen, onClose, onSave, initialCoords, initialPin }) {
               </div>
             )}
           </div>
+          {resolvedAddressHint && needsReverseGeocodeLookup(address) ? (
+            <p
+              style={{
+                margin: "4px 0 0 0",
+                fontSize: "12px",
+                color: "#555",
+              }}
+            >
+              Shown as: {resolvedAddressHint}
+            </p>
+          ) : null}
 
           <label style={{ fontSize: "12px", color: "#666" }}>Description</label>
           <textarea
@@ -438,188 +518,136 @@ function AddSpotModal({ isOpen, onClose, onSave, initialCoords, initialPin }) {
             ))}
           </select>
 
-          {/* Temporary Pin Option */}
+          {/* Pin visibility: classic always-on vs new recurring schedule JSON */}
           <div
             style={{
               padding: "12px",
               background: "#f9fafb",
               borderRadius: "6px",
               border: "1px solid #e5e7eb",
+              display: "grid",
+              gap: "10px",
             }}
           >
-            <label
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                fontSize: "12px",
-                color: "#666",
-                cursor: "pointer",
-              }}
-            >
-              <input
-                type="checkbox"
-                checked={isTemporary}
-                onChange={(e) => setIsTemporary(e.target.checked)}
-                style={{ cursor: "pointer" }}
-              />
-              <span>⏰ Make this a temporary pin</span>
-            </label>
-            {isTemporary && (
-              <div style={{ marginTop: "8px" }}>
-                <label
-                  style={{
-                    fontSize: "12px",
-                    color: "#666",
-                    display: "block",
-                    marginBottom: "4px",
-                  }}
-                >
-                  Expiration type:
-                </label>
-                <select
-                  value={expirationType}
-                  onChange={(e) => {
-                    setExpirationType(e.target.value);
-                    // Set default datetime if switching to datetime mode
-                    if (e.target.value === "datetime" && !expirationDateTime) {
-                      const defaultDateTime = new Date();
-                      defaultDateTime.setHours(defaultDateTime.getHours() + 24);
-                      const localDateTime = new Date(
-                        defaultDateTime.getTime() -
-                          defaultDateTime.getTimezoneOffset() * 60000,
-                      )
-                        .toISOString()
-                        .slice(0, 16);
-                      setExpirationDateTime(localDateTime);
-                    }
-                  }}
-                  style={{
-                    padding: "6px",
-                    border: "1px solid #ccc",
-                    borderRadius: "4px",
-                    fontSize: "14px",
-                    width: "100%",
-                    marginBottom: "8px",
-                  }}
-                >
-                  <option value="hours">Hours from now</option>
-                  <option value="days">Days from now</option>
-                  <option value="datetime">Specific date & time</option>
-                </select>
+            <label style={{ fontSize: "12px", color: "#666" }}>Pin visibility</label>
+            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+              <button
+                type="button"
+                onClick={() => setPinVisibilityMode("permanent")}
+                style={{
+                  flex: 1,
+                  padding: "8px 10px",
+                  borderRadius: "6px",
+                  border: "1px solid #ccc",
+                  cursor: "pointer",
+                  fontWeight: 600,
+                  background: pinVisibilityMode === "permanent" ? "#1cbe52" : "#fff",
+                  color: pinVisibilityMode === "permanent" ? "#fff" : "#444",
+                }}
+              >
+                Permanent
+              </button>
+              <button
+                type="button"
+                onClick={() => setPinVisibilityMode("scheduled")}
+                style={{
+                  flex: 1,
+                  padding: "8px 10px",
+                  borderRadius: "6px",
+                  border: "1px solid #ccc",
+                  cursor: "pointer",
+                  fontWeight: 600,
+                  background: pinVisibilityMode === "scheduled" ? "#1cbe52" : "#fff",
+                  color: pinVisibilityMode === "scheduled" ? "#fff" : "#444",
+                }}
+              >
+                Scheduled
+              </button>
+            </div>
 
-                {expirationType === "hours" && (
-                  <>
-                    <label
-                      style={{
-                        fontSize: "12px",
-                        color: "#666",
-                        display: "block",
-                        marginBottom: "4px",
-                      }}
-                    >
-                      Hours:
-                    </label>
-                    <select
-                      value={expirationHours}
-                      onChange={(e) =>
-                        setExpirationHours(parseInt(e.target.value, 10))
-                      }
-                      style={{
-                        padding: "6px",
-                        border: "1px solid #ccc",
-                        borderRadius: "4px",
-                        fontSize: "14px",
-                        width: "100%",
-                      }}
-                    >
-                      <option value={1}>1 hour</option>
-                      <option value={2}>2 hours</option>
-                      <option value={3}>3 hours</option>
-                      <option value={6}>6 hours</option>
-                      <option value={12}>12 hours</option>
-                      <option value={24}>24 hours (1 day)</option>
-                      <option value={48}>48 hours (2 days)</option>
-                      <option value={72}>72 hours (3 days)</option>
-                    </select>
-                  </>
-                )}
-
-                {expirationType === "days" && (
-                  <>
-                    <label
-                      style={{
-                        fontSize: "12px",
-                        color: "#666",
-                        display: "block",
-                        marginBottom: "4px",
-                      }}
-                    >
-                      Days:
-                    </label>
-                    <select
-                      value={expirationDays}
-                      onChange={(e) =>
-                        setExpirationDays(parseInt(e.target.value, 10))
-                      }
-                      style={{
-                        padding: "6px",
-                        border: "1px solid #ccc",
-                        borderRadius: "4px",
-                        fontSize: "14px",
-                        width: "100%",
-                      }}
-                    >
-                      <option value={1}>1 day</option>
-                      <option value={2}>2 days</option>
-                      <option value={3}>3 days</option>
-                      <option value={7}>1 week</option>
-                      <option value={14}>2 weeks</option>
-                      <option value={30}>1 month</option>
-                    </select>
-                  </>
-                )}
-
-                {expirationType === "datetime" && (
-                  <>
-                    <label
-                      style={{
-                        fontSize: "12px",
-                        color: "#666",
-                        display: "block",
-                        marginBottom: "4px",
-                      }}
-                    >
-                      Date & Time:
-                    </label>
-                    <input
-                      type="datetime-local"
-                      value={expirationDateTime || ""}
-                      onChange={(e) => setExpirationDateTime(e.target.value)}
-                      min={new Date().toISOString().slice(0, 16)}
-                      style={{
-                        padding: "6px",
-                        border: "1px solid #ccc",
-                        borderRadius: "4px",
-                        fontSize: "14px",
-                        width: "100%",
-                      }}
-                    />
-                  </>
-                )}
-
-                <p
-                  style={{
-                    margin: "8px 0 0 0",
-                    fontSize: "11px",
-                    color: "#9ca3af",
-                  }}
-                >
-                  This pin will automatically disappear after the selected time.
-                  Friends will be able to see it until it expires.
-                </p>
-              </div>
+            {initialPin?.expires_at && !initialPin?.schedule && (
+              <p style={{ margin: 0, fontSize: "11px", color: "#9ca3af" }}>
+                This pin still uses the older “delete after one timestamp” setting. Switching to
+                Scheduled clears that timer in favor of the weekly pattern.
+              </p>
             )}
+
+            <div
+              style={{
+                display: pinVisibilityMode === "scheduled" ? "grid" : "none",
+                gap: "10px",
+              }}
+              aria-hidden={pinVisibilityMode !== "scheduled"}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                <label style={{ fontSize: "12px", color: "#666", margin: 0 }}>Time window</label>
+                <input
+                  type="time"
+                  value={schedStartTime}
+                  onChange={(e) => setSchedStartTime(e.target.value)}
+                  style={{ padding: "6px", border: "1px solid #ccc", borderRadius: "4px" }}
+                />
+                <span style={{ color: "#999" }}>→</span>
+                <input
+                  type="time"
+                  value={schedEndTime}
+                  onChange={(e) => setSchedEndTime(e.target.value)}
+                  style={{ padding: "6px", border: "1px solid #ccc", borderRadius: "4px" }}
+                />
+              </div>
+
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                <label style={{ fontSize: "12px", color: "#666", margin: 0 }}>Date range</label>
+                <input
+                  type="date"
+                  value={schedStartDate}
+                  onChange={(e) => setSchedStartDate(e.target.value)}
+                  style={{ padding: "6px", border: "1px solid #ccc", borderRadius: "4px" }}
+                />
+                <span style={{ color: "#999" }}>to</span>
+                <input
+                  type="date"
+                  value={schedEndDate}
+                  onChange={(e) => setSchedEndDate(e.target.value)}
+                  style={{ padding: "6px", border: "1px solid #ccc", borderRadius: "4px" }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: "12px", color: "#666", display: "block", marginBottom: "6px" }}>
+                  Days of week
+                </label>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                  {WEEKDAY_PILLS.map((pill) => {
+                    const active = schedDays.includes(pill.value);
+                    return (
+                      <button
+                        key={pill.value}
+                        type="button"
+                        onClick={() => toggleWeekday(pill.value)}
+                        style={{
+                          border: "1px solid #cbd5e1",
+                          borderRadius: "999px",
+                          padding: "4px 10px",
+                          fontSize: "12px",
+                          cursor: "pointer",
+                          background: active ? "#0f172a" : "#fff",
+                          color: active ? "#f8fafc" : "#475569",
+                          fontWeight: 600,
+                        }}
+                      >
+                        {pill.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <p style={{ margin: 0, fontSize: "11px", color: "#9ca3af" }}>
+                Scheduled pins disappear from the map outside the window but stay saved for the next
+                matching day.
+              </p>
+            </div>
           </div>
 
           <label style={{ fontSize: "12px", color: "#666" }}>Images</label>

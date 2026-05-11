@@ -235,6 +235,77 @@ body {
   -webkit-filter: drop-shadow(0 0 6px var(--pin-color, #1fcece)) drop-shadow(0 0 3px var(--pin-color, #1fcece)) !important;
 }
 
+/* Recurring-scheduled pins: amber dashed frame + small clock cue */
+.leaflet-marker-icon.spoty-pin-div,
+.leaflet-marker-icon.colored-pin-scheduled-wrapper {
+  background: transparent !important;
+  overflow: visible !important;
+}
+
+.spoty-pin-shell {
+  position: relative;
+  width: 40px;
+  height: 50px;
+  border-radius: 10px;
+  border: 2px dashed var(--scheduled-color, #f59e0b);
+  box-sizing: border-box;
+  animation: scheduledPinGlow 1.5s ease-in-out infinite;
+}
+
+.spoty-pin-img-wrap {
+  padding: 2px;
+}
+
+.spoty-pin-img.spoty-pin-img-scheduled {
+  width: 36px !important;
+  height: 45px !important;
+  margin: 2px auto 0;
+  display: block;
+  filter: sepia(0.25) saturate(1.2) hue-rotate(-8deg)
+    drop-shadow(0 0 4px var(--scheduled-color, #f59e0b));
+}
+
+.spoty-pin-clock,
+.spoty-pin-clock-friend {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  font-size: 12px;
+  line-height: 1;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.65);
+}
+
+.colored-pin-friend-scheduled {
+  border-radius: 8px;
+  outline: 2px dashed var(--scheduled-ring, #f59e0b);
+  outline-offset: 1px;
+  animation: scheduledPinGlowFriend 1.5s ease-in-out infinite;
+}
+
+@keyframes scheduledPinGlow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.35);
+    border-color: #f59e0b;
+  }
+  50% {
+    box-shadow: 0 0 12px 2px rgba(245, 158, 11, 0.55);
+    border-color: #fbbf24;
+  }
+}
+
+@keyframes scheduledPinGlowFriend {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 6px var(--pin-color, #1fcece))
+      drop-shadow(0 0 3px var(--scheduled-ring, #f59e0b));
+  }
+  50% {
+    filter: drop-shadow(0 0 10px var(--scheduled-ring, #f59e0b))
+      drop-shadow(0 0 4px var(--pin-color, #1fcece));
+  }
+}
+
 @keyframes friendPulse {
   0%, 100% {
     filter: drop-shadow(0 0 12px var(--friend-color, #1fcece)) drop-shadow(0 0 6px var(--friend-color, #1fcece)) brightness(1.0);
@@ -354,4 +425,30 @@ body {
 
 .logout-btn:hover {
   background: #c53030;
+}
+
+/* Header — replay onboarding (pairs with TutorialOverlay state in App.jsx) */
+.tutorial-replay-header-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  margin-right: 0.5rem;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 0.8125rem;
+  background: #2d3748;
+  color: #f7fafc;
+}
+
+.tutorial-replay-header-btn:hover {
+  filter: brightness(1.08);
+}
+
+.tutorial-replay-header-btn svg {
+  width: 18px;
+  height: 18px;
 }

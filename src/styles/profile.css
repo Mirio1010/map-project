@@ -2,6 +2,153 @@
    Profile Page Styles
    ============================================ */
 
+/* One-time username setup (legacy accounts) */
+.profile-username-setup {
+  margin-top: 0.5rem;
+}
+
+.profile-username-input-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: flex-start;
+  margin-bottom: 0.35rem;
+}
+
+.profile-username-setup input[type="text"] {
+  flex: 1 1 200px;
+  min-width: 160px;
+  padding: 0.5rem 0.65rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.profile-username-check-btn {
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.profile-username-check-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.profile-username-save-btn {
+  margin-top: 0.75rem;
+  padding: 0.55rem 1rem;
+  border-radius: 8px;
+  border: none;
+  background: var(--brand);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.profile-username-save-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.profile-username-helper {
+  font-size: 0.8rem;
+  opacity: 0.85;
+  margin: 0 0 0.35rem 0;
+}
+
+.profile-username-available {
+  font-size: 0.85rem;
+  color: #22c55e;
+  margin: 0.25rem 0 0 0;
+}
+
+.profile-username-taken {
+  font-size: 0.85rem;
+  color: #ef4444;
+  margin: 0.25rem 0 0 0;
+}
+
+.profile-username-success {
+  font-size: 0.9rem;
+  color: #22c55e;
+  margin: 0.5rem 0 0 0;
+}
+
+.profile-username-locked-btn {
+  margin-top: 0.35rem;
+  padding: 0.45rem 0.85rem;
+  font-size: 0.85rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: rgba(128, 128, 128, 0.25);
+  color: rgba(255, 255, 255, 0.45);
+  cursor: pointer;
+}
+
+.profile-username-toast {
+  margin: 0.5rem 0 0 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+  opacity: 0.95;
+  padding: 0.5rem 0.65rem;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--border);
+  max-width: 28rem;
+}
+
+.profile-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.friends-toggle-button--muted {
+  opacity: 0.55;
+  cursor: default;
+  background: rgba(128, 128, 128, 0.35) !important;
+}
+
+.friends-toggle-button--muted:hover {
+  transform: none;
+}
+
+.profile-spoty-team-msg {
+  margin: 0.5rem 0 0 0;
+  font-size: 0.9rem;
+  color: #6ee7b7;
+}
+
+.profile-place-schedule {
+  margin: 0.35rem 0 0 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.profile-place-schedule--active {
+  color: #6ee7b7;
+}
+
+.profile-place-inactive-block {
+  margin-top: 0.35rem;
+}
+
+.profile-place-next-active {
+  margin: 0.35rem 0 0 0;
+  font-size: 0.8rem;
+  color: #9ca3af;
+}
+
 /* Wrapper for the Profile page that enables scrolling */
 .profile-page-wrapper {
   flex: 1;

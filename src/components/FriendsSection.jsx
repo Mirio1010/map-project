@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { supabase } from "../utils/supabaseClient";
+import { profileDisplayName } from "../utils/usernameUtils";
 import "../styles/friends.css";
 
 /**
@@ -113,7 +114,7 @@ function FriendsSection({ currentUserId, onFriendsChange, onClose }) {
       }
 
       // Check if already friends
-      const { data: existingFriend, error: checkError } = await supabase
+      const { data: existingFriend } = await supabase
         .from("friends")
         .select("id")
         .eq("user_id", currentUserId)
@@ -141,7 +142,9 @@ function FriendsSection({ currentUserId, onFriendsChange, onClose }) {
       }
 
       // Success - update friends list
-      setAddFriendSuccess(`Successfully added ${friendProfile.username || friendProfile.email} as a friend!`);
+      setAddFriendSuccess(
+        `Successfully added ${profileDisplayName(friendProfile, "User")} as a friend!`,
+      );
       setNewFriendEmail("");
 
       // Reload friends list and notify parent
