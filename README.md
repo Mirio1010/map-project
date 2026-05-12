@@ -122,6 +122,6 @@ This section is for my **CISC 4900 Independent Project class**.
 It contains my timelog and is not part of the project deliverables for the team.
 
 
-👉 [View My Timelog](https://docs.google.com/spreadsheets/d/1t9WjDZbcMgz16ysqB7L7l7HQdXJRdsoC8jRkrP5u7Qs/edit?usp=sharing)
+👉 [View My Timelog](https://docs.google.com/spreadsheets/d/1VS36THG6752LVym2R2I1hbBXIe4ayPEZ6rNSwWcLUPk/edit?usp=sharing)
 
-👉 [View Project Slides](https://docs.google.com/presentation/d/1AUJZLIb-Grsj2MFVBZWYGsEntbMhPm0vsZgXCs-9lrI/edit?usp=sharing)
+👉 [View Project Slides](https://docs.google.com/presentation/d/1lrbwykHx-1x5xlfb3-FSU0PamzM-PCYd2D9Z4iFCPZI/edit?usp=sharing)
