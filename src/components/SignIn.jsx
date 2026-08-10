@@ -1,6 +1,12 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { MapPin } from "lucide-react";
 import { supabase } from "../utils/supabaseClient";
+import {
+  friendlyAuthError,
+  isPasswordLongEnough,
+  MIN_PASSWORD_LENGTH,
+} from "../utils/authSecurity";
 
 export default function SignIn() {
   const [email, setEmail] = useState("");
@@ -13,54 +19,99 @@ export default function SignIn() {
     e.preventDefault();
     setLoading(true);
     setError(null);
+
+    if (!isPasswordLongEnough(password)) {
+      setError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
+      setLoading(false);
+      return;
+    }
+
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
+      const { error: signErr } = await supabase.auth.signInWithPassword({
+        email: email.trim().toLowerCase(),
         password,
       });
-      if (error) throw error;
-      // on success, navigate to app
+      if (signErr) throw signErr;
       navigate("/app");
     } catch (err) {
-      setError(err.message || "Sign in failed");
+      console.error("Sign in failed:", err);
+      setError(friendlyAuthError(err, "Sign in failed. Please try again."));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="auth-root">
-      <form className="auth-card" onSubmit={handleSubmit}>
-        <h2>Sign In</h2>
-        {error && <div className="auth-error">{error}</div>}
+    <div className="spoty-auth auth-root auth-root--apple">
+      <header className="auth-topbar">
+        <Link to="/" className="spoty-brand auth-topbar__brand">
+          <MapPin className="spoty-brand__mark" size={18} aria-hidden="true" />
+          Spoty
+        </Link>
+        <Link className="auth-topbar__link" to="/signup">
+          Create account
+        </Link>
+      </header>
 
-        <label>Email</label>
-        <input
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          type="email"
-          required
-        />
+      <main className="auth-main">
+        <form className="auth-sheet" onSubmit={handleSubmit} noValidate>
+          <div className="auth-sheet__mark" aria-hidden="true">
+            <MapPin size={28} />
+          </div>
+          <h1 className="auth-sheet__title">Sign in to Spoty</h1>
+          <p className="auth-sheet__lede">
+            One account for your places and the friends you share them with.
+          </p>
 
-        <label>Password</label>
-        <input
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          type="password"
-          required
-        />
+          {error && (
+            <div className="auth-error" role="alert">
+              {error}
+            </div>
+          )}
 
-        <button className="btn primary" type="submit" disabled={loading}>
-          {loading ? "Signing in..." : "Sign In"}
-        </button>
+          <label className="auth-label" htmlFor="signin-email">
+            Email
+          </label>
+          <input
+            id="signin-email"
+            className="auth-input"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            type="email"
+            autoComplete="email"
+            required
+          />
 
-        <p style={{ marginTop: 12 }}>
-          No account? <Link to="/signup">Create one</Link>
-        </p>
-        <p style={{ marginTop: 6 }}>
-          <Link to="/">Back</Link>
-        </p>
-      </form>
+          <label className="auth-label" htmlFor="signin-password">
+            Password
+          </label>
+          <input
+            id="signin-password"
+            className="auth-input"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            type="password"
+            autoComplete="current-password"
+            minLength={MIN_PASSWORD_LENGTH}
+            required
+          />
+
+          <button
+            className="spoty-btn spoty-btn--primary auth-submit"
+            type="submit"
+            disabled={loading}
+          >
+            {loading ? "Signing in…" : "Sign In"}
+          </button>
+
+          <p className="auth-sheet__foot">
+            Don’t have an account? <Link to="/signup">Create one</Link>
+          </p>
+          <p className="auth-sheet__foot">
+            <Link to="/">Back to Spoty</Link>
+          </p>
+        </form>
+      </main>
     </div>
   );
 }

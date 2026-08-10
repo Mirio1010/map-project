@@ -35,7 +35,8 @@ function Sidebar({
   setSortBy,
   selectedFriend,
   setSelectedFriend,
-  onResetFilters
+  onResetFilters,
+  friendsLoading = false,
 }) {
   
   // helper to find the actual index in the main list
@@ -185,6 +186,21 @@ function Sidebar({
           {showFriendsPins ? "Hide Friends" : "Show Friends"}
         </button>
       </div>
+
+      {friendsLoading ? (
+        <p
+          className="friends-loading-hint"
+          style={{
+            margin: "0 0 0.75rem 0",
+            fontSize: "0.8125rem",
+            color: "var(--muted)",
+            opacity: 0.85,
+          }}
+          aria-live="polite"
+        >
+          {"Loading friends' pins…"}
+        </p>
+      ) : null}
 
       {/* Filter Panel */}
       {isFilterOpen && (

@@ -1,7 +1,7 @@
 /**
  * Username helpers for signup, display, and availability checks.
  * All DB lookups use Supabase .eq() with sanitized values only — never template-literal SQL.
- * Heavy request volume is limited by Supabase anon key quotas (no extra client rate limiter).
+ * Client username-check throttle lives in authSecurity.js; Supabase anon quotas still apply.
  */
 
 /**

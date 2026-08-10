@@ -1,11 +1,18 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { MapPin } from "lucide-react";
 import { supabase } from "../utils/supabaseClient";
 import {
   deriveUsernameFromEmail,
   sanitizeUsernameForStorage,
   isValidSignupUsernameFormat,
 } from "../utils/usernameUtils";
+import {
+  createRequestThrottle,
+  friendlyAuthError,
+  isPasswordLongEnough,
+  MIN_PASSWORD_LENGTH,
+} from "../utils/authSecurity";
 
 export default function SignUp() {
   const [email, setEmail] = useState("");
@@ -13,14 +20,15 @@ export default function SignUp() {
   const [usernameInput, setUsernameInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  /** 'idle' | 'available' | 'taken' — availability is boolean-only in the UI (no profile payload exposed). */
+  /** 'idle' | 'available' | 'taken' | 'throttled' */
   const [usernameAvailability, setUsernameAvailability] = useState("idle");
   const [checkingUsername, setCheckingUsername] = useState(false);
   const navigate = useNavigate();
+  const usernameThrottle = useMemo(() => createRequestThrottle(), []);
 
   /**
-   * Sanitize with /[^a-zA-Z0-9_-]/g before any DB call; query uses parameterized .eq() only.
-   * Rate limiting: Supabase anon key quotas apply — no separate client throttle.
+   * Sanitize before any DB call; query uses parameterized .eq() only.
+   * Client throttle reduces anonymous hammering of profiles SELECT.
    */
   const handleCheckUsernameAvailability = async () => {
     setUsernameAvailability("idle");
@@ -29,6 +37,13 @@ export default function SignUp() {
       setUsernameAvailability("idle");
       return;
     }
+
+    const gate = usernameThrottle.tryAcquire();
+    if (!gate.ok) {
+      setUsernameAvailability("throttled");
+      return;
+    }
+
     setCheckingUsername(true);
     try {
       const { data, error: qError } = await supabase
@@ -55,128 +70,203 @@ export default function SignUp() {
     try {
       const trimmedUsername = usernameInput.trim();
       if (trimmedUsername && !isValidSignupUsernameFormat(trimmedUsername)) {
-        setError("Username must be 3–20 characters and use only letters, numbers, underscores, or hyphens.");
+        setError(
+          "Username must be 3–20 characters and use only letters, numbers, underscores, or hyphens."
+        );
         setLoading(false);
         return;
       }
 
-      const { data, error: signErr } = await supabase.auth.signUp({ email, password });
+      if (!isPasswordLongEnough(password)) {
+        setError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
+        setLoading(false);
+        return;
+      }
+
+      const normalizedEmail = email.trim().toLowerCase();
+      const { data, error: signErr } = await supabase.auth.signUp({
+        email: normalizedEmail,
+        password,
+      });
       if (signErr) throw signErr;
 
       if (data.user) {
         const chosenOrDerived = trimmedUsername
           ? sanitizeUsernameForStorage(trimmedUsername)
-          : deriveUsernameFromEmail(email);
+          : deriveUsernameFromEmail(normalizedEmail);
 
         const safeUsername = sanitizeUsernameForStorage(chosenOrDerived).slice(0, 20);
         const finalUsername =
-          safeUsername.length >= 3 ? safeUsername : deriveUsernameFromEmail(email);
+          safeUsername.length >= 3
+            ? safeUsername
+            : deriveUsernameFromEmail(normalizedEmail);
 
-        await supabase.from("profiles").insert({
+        // Re-check handle before insert to reduce TOCTOU races (unique index is still required).
+        if (trimmedUsername) {
+          const { data: existing, error: availErr } = await supabase
+            .from("profiles")
+            .select("id")
+            .eq("username", finalUsername)
+            .maybeSingle();
+          if (availErr) {
+            console.error("Username re-check failed:", availErr.message);
+            setError("Could not verify username. Please try again.");
+            setLoading(false);
+            return;
+          }
+          if (existing) {
+            setError("That username was just taken. Choose another and try again.");
+            setUsernameAvailability("taken");
+            setLoading(false);
+            return;
+          }
+        }
+
+        const { error: profileErr } = await supabase.from("profiles").insert({
           id: data.user.id,
           username: finalUsername,
-          email: email.trim().toLowerCase(),
+          email: normalizedEmail,
         });
+        if (profileErr) {
+          console.error("Profile insert failed:", profileErr.message);
+          const code = profileErr.code || "";
+          if (code === "23505") {
+            setError("That username is unavailable. Choose another and try again.");
+            setUsernameAvailability("taken");
+          } else {
+            setError(
+              "Account created, but profile setup failed. Sign in and finish your username on Profile."
+            );
+          }
+          setLoading(false);
+          return;
+        }
       }
 
       navigate("/app");
     } catch (err) {
-      setError(err.message || "Sign up failed");
+      console.error("Sign up failed:", err);
+      setError(friendlyAuthError(err, "Sign up failed. Please try again."));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="auth-root">
-      <form className="auth-card" onSubmit={handleSubmit}>
-        <h2>Create Account</h2>
-        {error && <div className="auth-error">{error}</div>}
+    <div className="spoty-auth auth-root">
+      <div className="auth-shell">
+        <aside className="auth-panel" aria-hidden="true">
+          <Link to="/" className="spoty-brand auth-panel__brand">
+            <MapPin className="spoty-brand__mark" size={28} />
+            Spoty
+          </Link>
+          <p className="auth-panel__tagline">
+            Start mapping the places you want to remember — and share.
+          </p>
+        </aside>
 
-        <label>Email</label>
-        <input
-          value={email}
-          onChange={(e) => {
-            setEmail(e.target.value);
-            setUsernameAvailability("idle");
-          }}
-          type="email"
-          required
-        />
+        <form className="auth-card" onSubmit={handleSubmit} noValidate>
+          <h1 className="auth-card__title">Create account</h1>
+          <p className="auth-card__subtitle">
+            Join Spoty and drop your first pin in under a minute.
+          </p>
 
-        <label>Username (optional)</label>
-        <div style={{ display: "flex", gap: "8px", alignItems: "flex-start", flexWrap: "wrap" }}>
+          {error && (
+            <div className="auth-error" role="alert">
+              {error}
+            </div>
+          )}
+
+          <label className="auth-label" htmlFor="signup-email">
+            Email
+          </label>
           <input
-            value={usernameInput}
+            id="signup-email"
+            className="auth-input"
+            value={email}
             onChange={(e) => {
-              setUsernameInput(e.target.value);
+              setEmail(e.target.value);
               setUsernameAvailability("idle");
             }}
-            type="text"
-            autoComplete="username"
-            placeholder="Leave blank to use one from your email"
-            style={{ flex: "1 1 160px", minWidth: "140px" }}
+            type="email"
+            autoComplete="email"
+            required
           />
+
+          <label className="auth-label" htmlFor="signup-username">
+            Username <span className="auth-optional">(optional)</span>
+          </label>
+          <div className="auth-username-row">
+            <input
+              id="signup-username"
+              className="auth-input"
+              value={usernameInput}
+              onChange={(e) => {
+                setUsernameInput(e.target.value);
+                setUsernameAvailability("idle");
+              }}
+              type="text"
+              autoComplete="username"
+              placeholder="Leave blank to use one from your email"
+            />
+            <button
+              type="button"
+              className="spoty-btn spoty-btn--soft auth-check-btn"
+              onClick={handleCheckUsernameAvailability}
+              disabled={
+                checkingUsername ||
+                sanitizeUsernameForStorage(usernameInput.trim()).length < 3
+              }
+            >
+              {checkingUsername ? "Checking…" : "Check"}
+            </button>
+          </div>
+          <p className="auth-hint">
+            3–20 characters. Letters, numbers, underscores, and hyphens only.
+          </p>
+          {usernameAvailability === "available" && (
+            <p className="auth-status auth-status--ok">Available</p>
+          )}
+          {usernameAvailability === "taken" && (
+            <p className="auth-status auth-status--bad">Taken</p>
+          )}
+          {usernameAvailability === "throttled" && (
+            <p className="auth-status auth-status--bad">
+              Please wait a moment before checking again.
+            </p>
+          )}
+
+          <label className="auth-label" htmlFor="signup-password">
+            Password
+          </label>
+          <input
+            id="signup-password"
+            className="auth-input"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            type="password"
+            autoComplete="new-password"
+            minLength={MIN_PASSWORD_LENGTH}
+            required
+          />
+          <p className="auth-hint">At least {MIN_PASSWORD_LENGTH} characters.</p>
+
           <button
-            type="button"
-            onClick={handleCheckUsernameAvailability}
-            disabled={checkingUsername || sanitizeUsernameForStorage(usernameInput.trim()).length < 3}
-            style={{
-              padding: "10px 12px",
-              borderRadius: "6px",
-              border: "1px solid #cbd5e1",
-              background: "#f8fafc",
-              cursor: "pointer",
-              fontSize: "13px",
-              whiteSpace: "nowrap",
-            }}
+            className="spoty-btn spoty-btn--primary auth-submit"
+            type="submit"
+            disabled={loading}
           >
-            {checkingUsername ? "Checking…" : "Check availability"}
+            {loading ? "Creating…" : "Sign Up"}
           </button>
-        </div>
-        <p style={{ fontSize: "12px", color: "#666", marginTop: "4px", marginBottom: "8px" }}>
-          3–20 characters. Letters, numbers, underscores, and hyphens only. If you skip this, we pick a
-          username from your email.
-        </p>
-        {usernameAvailability === "available" && (
-          <p style={{ fontSize: "13px", color: "#15803d", marginTop: 0 }}>✓ Available</p>
-        )}
-        {usernameAvailability === "taken" && (
-          <p style={{ fontSize: "13px", color: "#b91c1c", marginTop: 0 }}>✗ Taken</p>
-        )}
 
-        <label>Password</label>
-        <input
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          type="password"
-          required
-        />
-
-        <button
-          type="submit"
-          disabled={loading}
-          style={{
-            marginTop: "8px",
-            padding: "10px",
-            borderRadius: "6px",
-            border: "none",
-            background: "#1cbe52",
-            color: "#fff",
-            fontWeight: 600,
-            cursor: "pointer",
-          }}
-        >
-          {loading ? "Creating..." : "Sign Up"}
-        </button>
-
-        <p style={{ marginTop: 12 }}>
-          Already have an account? <Link to="/signin">Sign in</Link>
-        </p>
-        <p style={{ marginTop: 6 }}>
-          <Link to="/">Back</Link>
-        </p>
-      </form>
+          <p className="auth-footer-links">
+            Already have an account? <Link to="/signin">Sign in</Link>
+          </p>
+          <p className="auth-footer-links">
+            <Link to="/">Back to Spoty</Link>
+          </p>
+        </form>
+      </div>
     </div>
   );
 }

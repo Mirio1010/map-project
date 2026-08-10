@@ -45,6 +45,8 @@ function App() {
   const [showMyPins, setShowMyPins] = useState(true); // Toggle to show/hide user's own pins
   const [friendUsernames, setFriendUsernames] = useState({}); // Map of user_id to username
   const [friendColors, setFriendColors] = useState({}); // Map of user_id to color
+  /** True while friend IDs → pins → profiles are loading (deployed latency makes this visible). */
+  const [friendsLoading, setFriendsLoading] = useState(false);
   // ----------------------------------------
 
   // --- Home filter states (similar to Explore) ---
@@ -178,66 +180,76 @@ function App() {
   /** Avoid re-setting friends pin state when Supabase returns the same rows (prevents map marker churn). */
   const friendsPinsDataSigRef = useRef("");
 
-  // Load friends pins and usernames
+  /**
+   * Load friends in one strictly ordered chain: friend IDs → their locations → profiles.
+   * Uses `userIdForUi` (from auth session listener) instead of a separate `getUser()` call so
+   * production does not race “session not ready yet” vs “empty friends query”.
+   */
   useEffect(() => {
-    const loadFriendsPins = async () => {
+    if (!userIdForUi) {
+      friendsPinsDataSigRef.current = "";
+      setFriendsPins([]);
+      setFriendUsernames({});
+      setFriendProfiles([]);
+      setFriendColors({});
+      setFriendsLoading(false);
+      return undefined;
+    }
+
+    const uid = userIdForUi;
+    let cancelled = false;
+
+    const loadFriendsData = async () => {
+      setFriendsLoading(true);
       try {
-        const {
-          data: { user },
-          error: userError,
-        } = await supabase.auth.getUser();
-
-        if (userError || !user) {
-          // Do not wipe pins on a transient getUser() miss while session UI still shows signed-in.
-          if (!userIdForUi) {
-            friendsPinsDataSigRef.current = "";
-            setFriendsPins([]);
-            setFriendUsernames({});
-            setFriendProfiles([]);
-            setFriendColors({});
-          }
-          return;
-        }
-
-        // Load user's friends list
+        // Step 1 — friend IDs (must complete before locations query)
         const { data: friendsData, error: friendsError } = await supabase
           .from("friends")
           .select("friend_id")
-          .eq("user_id", user.id);
+          .eq("user_id", uid);
+
+        if (cancelled) return;
 
         if (friendsError) {
-          console.error("Error loading friends:", friendsError.message);
+          console.error("Failed to load friends data (friends table):", friendsError.message);
           friendsPinsDataSigRef.current = "";
           setFriendsPins([]);
           setFriendUsernames({});
+          setFriendProfiles([]);
+          setFriendColors({});
           return;
         }
 
         const friendIdsList = (friendsData || []).map((f) => f.friend_id);
-        
+
         if (friendIdsList.length === 0) {
           friendsPinsDataSigRef.current = "";
           setFriendsPins([]);
           setFriendUsernames({});
+          setFriendProfiles([]);
+          setFriendColors({});
           return;
         }
 
-        // Load pins from friends
+        // Step 2 — locations only after IDs are known (sequential await)
         const { data: pinsData, error: pinsError } = await supabase
           .from("locations")
           .select("*")
           .in("user_id", friendIdsList)
           .order("created_at", { ascending: false });
 
+        if (cancelled) return;
+
         if (pinsError) {
-          console.error("Error loading friends pins:", pinsError.message);
+          console.error("Failed to load friends data (locations):", pinsError.message);
           friendsPinsDataSigRef.current = "";
           setFriendsPins([]);
           setFriendUsernames({});
+          setFriendProfiles([]);
+          setFriendColors({});
           return;
         }
 
-        // Filter out expired pins
         const now = new Date();
         const validFriendsPins = (pinsData || []).filter((pin) => {
           if (!pin.expires_at) return true;
@@ -251,91 +263,104 @@ function App() {
           setFriendsPins(validFriendsPins);
         }
 
-        // Load usernames for all friends
+        if (cancelled) return;
+
+        // Step 3 — profiles for labels/colors
         const { data: profilesData, error: profilesError } = await supabase
           .from("profiles")
           .select("id, username, email")
           .in("id", friendIdsList);
 
+        if (cancelled) return;
+
         if (profilesError) {
-          console.error("Error loading friend profiles:", profilesError.message);
-        } else {
-          const usernameMap = {};
-          (profilesData || []).forEach((profile) => {
-            usernameMap[profile.id] = profileDisplayName(profile, "Unknown");
-          });
-          setFriendProfiles((prev) => {
-            const next = profilesData || [];
-            if (JSON.stringify(prev) === JSON.stringify(next)) return prev;
-            return next;
-          });
-
-          // Generate consistent colors for friends - ensure unique colors
-          const palette = [
-            "#ff6b6b",  // Red
-            "#ffd166",  // Yellow
-            "#06d6a0",  // Green
-            "#118ab2",  // Blue
-            "#9b6bff",  // Purple
-            "#ef476f",  // Pink
-            "#33b5e5",  // Light Blue
-            "#f78c6b",  // Orange
-            "#c792ea",  // Lavender
-            "#8dd3c7",  // Mint
-            "#ff9f43",  // Orange Red
-            "#5f27cd",  // Deep Purple
-            "#00d2d3",  // Cyan
-            "#ff6348",  // Coral
-            "#a55eea",  // Violet
-          ];
-          
-          setFriendUsernames((prev) => {
-            const prevJson = JSON.stringify(prev);
-            const nextJson = JSON.stringify(usernameMap);
-            return prevJson === nextJson ? prev : usernameMap;
-          });
-
-          setFriendColors((existingColorMap) => {
-            const colorMap = { ...existingColorMap };
-            const usedColors = new Set(Object.values(existingColorMap));
-
-            (profilesData || []).forEach((profile) => {
-              if (colorMap[profile.id]) {
-                return;
-              }
-
-              let assignedColor = null;
-              for (const color of palette) {
-                if (!usedColors.has(color)) {
-                  assignedColor = color;
-                  usedColors.add(color);
-                  break;
-                }
-              }
-              if (!assignedColor) {
-                assignedColor = palette[usedColors.size % palette.length];
-              }
-              colorMap[profile.id] = assignedColor;
-            });
-
-            const prevJson = JSON.stringify(existingColorMap);
-            const nextJson = JSON.stringify(colorMap);
-            return prevJson === nextJson ? existingColorMap : colorMap;
-          });
+          console.error("Failed to load friends data (profiles):", profilesError.message);
+          return;
         }
+
+        const usernameMap = {};
+        (profilesData || []).forEach((profile) => {
+          usernameMap[profile.id] = profileDisplayName(profile, "Unknown");
+        });
+
+        setFriendProfiles((prev) => {
+          const next = profilesData || [];
+          if (JSON.stringify(prev) === JSON.stringify(next)) return prev;
+          return next;
+        });
+
+        const palette = [
+          "#ff6b6b",
+          "#ffd166",
+          "#06d6a0",
+          "#118ab2",
+          "#9b6bff",
+          "#ef476f",
+          "#33b5e5",
+          "#f78c6b",
+          "#c792ea",
+          "#8dd3c7",
+          "#ff9f43",
+          "#5f27cd",
+          "#00d2d3",
+          "#ff6348",
+          "#a55eea",
+        ];
+
+        setFriendUsernames((prev) => {
+          const prevJson = JSON.stringify(prev);
+          const nextJson = JSON.stringify(usernameMap);
+          return prevJson === nextJson ? prev : usernameMap;
+        });
+
+        setFriendColors((existingColorMap) => {
+          const colorMap = { ...existingColorMap };
+          const usedColors = new Set(Object.values(existingColorMap));
+
+          (profilesData || []).forEach((profile) => {
+            if (colorMap[profile.id]) {
+              return;
+            }
+
+            let assignedColor = null;
+            for (const color of palette) {
+              if (!usedColors.has(color)) {
+                assignedColor = color;
+                usedColors.add(color);
+                break;
+              }
+            }
+            if (!assignedColor) {
+              assignedColor = palette[usedColors.size % palette.length];
+            }
+            colorMap[profile.id] = assignedColor;
+          });
+
+          const prevJson = JSON.stringify(existingColorMap);
+          const nextJson = JSON.stringify(colorMap);
+          return prevJson === nextJson ? existingColorMap : colorMap;
+        });
       } catch (err) {
-        console.error("Unexpected error loading friends pins:", err);
+        console.error("Failed to load friends data:", err);
         friendsPinsDataSigRef.current = "";
         setFriendsPins([]);
         setFriendUsernames({});
         setFriendProfiles([]);
         setFriendColors({});
+      } finally {
+        if (!cancelled) {
+          setFriendsLoading(false);
+        }
       }
     };
 
-    loadFriendsPins();
-    // Depends on userIdForUi so we refetch after session hydrates (first tick can see no user).
-  }, [friendsDataVersion, userIdForUi]);
+    loadFriendsData();
+
+    return () => {
+      cancelled = true;
+      setFriendsLoading(false);
+    };
+  }, [userIdForUi, friendsDataVersion]);
 
 
   // 2. save Pins (create or update)
@@ -662,6 +687,7 @@ const handleSavePin = async (newPin) => {
                 friendUsernames={friendUsernames}
                 friendColors={friendColors}
                 friendProfiles={friendProfiles}
+                friendsLoading={friendsLoading}
                 
                 onDelete={handleDeletePin}
                 onEdit={handleEdit}
@@ -713,6 +739,7 @@ const handleSavePin = async (newPin) => {
               friendsPins={showFriendsPins ? visibleMapFriendsPins : []}
               friendUsernames={friendUsernames} // Map of user_id to username
               friendColors={friendColors}
+              friendsLoading={friendsLoading}
               onClickOnMap={handleMapClick}
               mapAction={mapAction}
               sidebarOpen={sidebarOpen}
