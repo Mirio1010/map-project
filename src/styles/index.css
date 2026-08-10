@@ -1,6 +1,9 @@
 /* src/styles/index.css */
 
-/* 1. full screen */
+/* 1. full screen
+   overflow:hidden is intentional for the /app map shell so only inner panes scroll.
+   Marketing/auth pages must provide their own scroll container
+   (.landing-root / .auth-root { height:100%; overflow-y:auto }). */
 html,
 body,
 #root {

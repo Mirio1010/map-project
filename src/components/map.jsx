@@ -55,7 +55,16 @@ function MapController({ mapAction, sidebarOpen }) {
   return null;
 }
 
-function Map({ pins, friendsPins = [], friendUsernames = {}, friendColors = {}, onClickOnMap, mapAction, sidebarOpen }) {
+function Map({
+  pins,
+  friendsPins = [],
+  friendUsernames = {},
+  friendColors = {},
+  friendsLoading = false,
+  onClickOnMap,
+  mapAction,
+  sidebarOpen,
+}) {
   
   // Helper for stars in popup
   const renderStars = (count) => {
@@ -88,7 +97,28 @@ function Map({ pins, friendsPins = [], friendUsernames = {}, friendColors = {}, 
   };
 
   return (
-    <div className="right-pane" style={{ height: "100%", width: "100%" }}>
+    <div className="right-pane" style={{ height: "100%", width: "100%", position: "relative" }}>
+      {friendsLoading ? (
+        <div
+          style={{
+            position: "absolute",
+            zIndex: 1002,
+            bottom: 12,
+            left: 12,
+            padding: "6px 10px",
+            borderRadius: 8,
+            fontSize: 12,
+            fontWeight: 600,
+            color: "#0f172a",
+            background: "rgba(255,255,255,0.92)",
+            boxShadow: "0 1px 4px rgba(0,0,0,0.15)",
+            pointerEvents: "none",
+          }}
+          aria-live="polite"
+        >
+          {"Loading friends' pins…"}
+        </div>
+      ) : null}
       <MapContainer
         center={[40.7128, -74.006]}
         zoom={12}

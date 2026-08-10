@@ -8,6 +8,7 @@ import SignUp from "./components/SignUp";
 import "./styles/index.css";
 import "./styles/style.css";
 import "./styles/cards.css";
+import "./styles/marketing.css";
 import "./styles/auth.css";
 import "leaflet/dist/leaflet.css";
 
